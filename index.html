@@ -580,7 +580,7 @@ function buildMarkers(rows){
         <div style="display:flex;gap:10px;margin-top:6px;flex-wrap:wrap;">
           ${link ? `<a class="popup-link" href="${link}" target="_blank">🗺️ Google Maps</a>` : ''}
           ${svLink ? `<a class="popup-link" href="${svLink}" target="_blank">🚶 Street View</a>` : ''}
-          ${r.approx ? `<a class="popup-link" href="https://landsmaps.dol.go.th/" target="_blank">🔍 LandsMaps${lmHint ? ' ('+escapeHtml(lmHint)+')' : ''}</a>` : ''}
+          <a class="popup-link" href="https://landsmaps.dol.go.th/" target="_blank">🔍 LandsMaps${lmHint ? ' ('+escapeHtml(lmHint)+')' : ''}</a>
         </div>
         <div style="margin-top:8px;"><span class="opinion-link" onclick="openDetail(${r.no})" style="cursor:pointer;">📋 ดูลำดับความเห็น →</span></div>
       `);
@@ -777,7 +777,7 @@ function renderList(rows){
         ${ (r.lat && r.lng) ? (r.approx ? `<span class="no-geo-tag">📍 พิกัดโดยประมาณ</span>` : `<span class="no-geo-tag">📍 พิกัดแม่นยำ</span>`) : `<span class="no-geo-tag">⚠️ ไม่มีพิกัดเลย</span>`}
         ${link ? `<a href="${link}" target="_blank" onclick="event.stopPropagation()">🗺️ Google Maps</a>` : ''}
         ${svLink ? `<a href="${svLink}" target="_blank" onclick="event.stopPropagation()">🚶 Street View</a>` : ''}
-        ${r.approx ? `<a class="landsmaps-link" href="https://landsmaps.dol.go.th/" target="_blank" onclick="event.stopPropagation()">🔍 ค้นหาแม่นยำใน LandsMaps${lmHint ? ' ('+escapeHtml(lmHint)+')' : ''}</a>` : ''}
+        <a class="landsmaps-link" href="https://landsmaps.dol.go.th/" target="_blank" onclick="event.stopPropagation()">🔍 ตรวจสอบใน LandsMaps${lmHint ? ' ('+escapeHtml(lmHint)+')' : ''}</a>
         <a href="#" onclick="event.stopPropagation();event.preventDefault();openDetail(${r.no})">📋 ดูลำดับความเห็น</a>
       </div>
     `;
@@ -989,7 +989,7 @@ function openDetail(no){
     <div class="detail-actions">
       ${link ? `<a href="${link}" target="_blank">🗺️ เปิด Google Maps</a>` : ''}
       ${svLink ? `<a class="sv" href="${svLink}" target="_blank">🚶 เปิด Street View</a>` : ''}
-      ${r.approx ? `<a class="landsmaps-link" href="https://landsmaps.dol.go.th/" target="_blank">🔍 ค้นหาแม่นยำใน LandsMaps${lmHint ? ' ('+escapeHtml(lmHint)+')' : ''}</a>` : ''}
+      <a class="landsmaps-link" href="https://landsmaps.dol.go.th/" target="_blank">🔍 ตรวจสอบใน LandsMaps${lmHint ? ' ('+escapeHtml(lmHint)+')' : ''}</a>
     </div>
     <p class="tl-title">ลำดับการพิจารณาให้ความเห็น</p>
     ${timelineHtml}
