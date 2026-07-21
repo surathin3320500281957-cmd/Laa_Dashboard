@@ -25,33 +25,51 @@
   }
   header h1{ margin:0; font-size:18px; font-weight:600; }
   header .sub{ color:var(--muted); font-size:12.5px; margin-top:2px; }
-  .stats{ display:flex; gap:10px; flex-wrap:wrap; }
-  .stat{
-    background:var(--panel2); border:1px solid var(--border); border-radius:10px;
-    padding:8px 14px; text-align:center; min-width:78px;
-  }
-  .stat b{ display:block; font-size:18px; }
-  .stat span{ font-size:11px; color:var(--muted); }
 
-  .toolbar{
-    display:flex; gap:8px; padding:10px 20px; background:var(--panel);
-    border-bottom:1px solid var(--border); flex-wrap:wrap; align-items:center;
+  .kpi{ display:flex; gap:10px; flex-wrap:wrap; }
+  .kcard{
+    border-radius:10px; padding:8px 16px; text-align:left; min-width:88px;
+    background:var(--panel2); border:1px solid var(--border);
   }
-  .toolbar input[type=text]{
-    flex:1; min-width:180px; padding:8px 12px; border-radius:8px; border:1px solid var(--border);
+  .kcard b{ display:block; font-size:19px; line-height:1.2; }
+  .kcard span{ font-size:11px; color:var(--muted); }
+  .kcard.k-geo{ border-color:var(--accent); }
+  .kcard.k-geo b{ color:var(--accent); }
+  .kcard.k-A b{ color:var(--A); } .kcard.k-B b{ color:var(--B); }
+  .kcard.k-C b{ color:var(--C); } .kcard.k-D b{ color:var(--D); }
+
+  .filterPanel{ background:var(--panel); border-bottom:1px solid var(--border); padding:12px 20px; }
+  .filterTop{ display:flex; gap:8px; align-items:center; margin-bottom:12px; flex-wrap:wrap; }
+  .filterTop input[type=text]{
+    flex:1; min-width:200px; padding:8px 12px; border-radius:8px; border:1px solid var(--border);
     background:var(--panel2); color:var(--text); font-size:13px;
   }
-  .toolbar select{
-    padding:8px 10px; border-radius:8px; border:1px solid var(--border);
-    background:var(--panel2); color:var(--text); font-size:13px;
+  .btn{ padding:7px 14px; border-radius:8px; border:none; background:var(--accent);
+    color:#fff; font-size:12.5px; cursor:pointer; white-space:nowrap; }
+  .btn:hover{ background:var(--accentDark); }
+  .btn.ghost{ background:transparent; border:1px solid var(--border); color:var(--muted); }
+  .btn.ghost:hover{ color:var(--text); border-color:var(--accent); }
+  .btn.pdf{ background:#c0392b; } .btn.pdf:hover{ background:#a5301f; }
+  .btn.xls{ background:#1d8348; } .btn.xls:hover{ background:#166638; }
+
+  .filterGroup{ margin-bottom:10px; }
+  .filterGroup:last-child{ margin-bottom:0; }
+  .filterLabel{ font-size:11.5px; color:var(--muted); margin-bottom:6px; }
+  .chipRow{ display:flex; flex-wrap:wrap; gap:6px; }
+  .chip{
+    font-size:12px; padding:5px 12px; border-radius:20px; cursor:pointer; user-select:none;
+    background:var(--panel2); border:1px solid var(--border); color:var(--text); transition:.12s;
   }
-  .toolbar button{
-    padding:8px 14px; border-radius:8px; border:none; background:var(--accent);
-    color:#fff; font-size:13px; cursor:pointer;
-  }
-  .toolbar button:hover{ background:var(--accentDark); }
-  .toolbar .ghost{ background:transparent; border:1px solid var(--border); color:var(--muted); }
-  .toolbar .ghost:hover{ color:var(--text); border-color:var(--accent); }
+  .chip:hover{ border-color:var(--accent); }
+  .chip.disabled{ opacity:.35; pointer-events:none; }
+  .chip.active.g-dept{ background:#534AB7; border-color:#534AB7; color:#fff; }
+  .chip.active.g-A{ background:var(--A); border-color:var(--A); color:#0b2b16; }
+  .chip.active.g-B{ background:var(--B); border-color:var(--B); color:#3a2e04; }
+  .chip.active.g-C{ background:var(--C); border-color:var(--C); color:#3a1f04; }
+  .chip.active.g-D{ background:var(--D); border-color:var(--D); color:#3a0808; }
+  .chip.active.g-usage{ background:#0f6e56; border-color:#0f6e56; color:#fff; }
+  .chip.active.g-geo{ background:var(--accent); border-color:var(--accent); color:#fff; }
+  .chip .cnt{ opacity:.65; font-size:10.5px; margin-left:4px; }
 
   main{ flex:1; display:flex; overflow:hidden; }
   #map{ flex:1.3; min-width:0; }
@@ -107,26 +125,37 @@
 <header>
   <div>
     <h1>🗺️ Dashboard พื้นที่จัดประโยชน์ กคช.</h1>
-    <div class="sub">ข้อมูลจากไฟล์ พื้นที่จัดประโยชน์.xlsx — แสดงตำแหน่งบนแผนที่ตาม column "ตำแหน่งที่ตั้ง (google map)"</div>
+    <div class="sub">เลือกเงื่อนไข → ตารางและแผนที่กรองพร้อมกัน · ข้อมูลจากคอลัมน์ "ตำแหน่งที่ตั้ง (google map)"</div>
   </div>
-  <div class="stats" id="statsBar"></div>
+  <div class="kpi" id="kpiBar"></div>
 </header>
 
-<div class="toolbar">
-  <input type="text" id="searchBox" placeholder="ค้นหาชื่อโครงการ / ที่อยู่ / รหัสโครงการ..." />
-  <select id="deptFilter"><option value="">ทุกฝ่าย</option></select>
-  <select id="gradeFilter">
-    <option value="">ทุกเกรด</option>
-    <option value="A">A - มีศักยภาพ</option>
-    <option value="B">B - มีสิ่งกีดขวาง</option>
-    <option value="C">C - อยู่ในซอย</option>
-    <option value="D">D - ไม่มีศักยภาพ</option>
-  </select>
-  <select id="geoFilter">
-    <option value="">ทุกรายการ</option>
-    <option value="geo">มีพิกัดบนแผนที่เท่านั้น</option>
-  </select>
-  <button class="ghost" id="resetBtn">ล้างตัวกรอง</button>
+<div class="filterPanel">
+  <div class="filterTop">
+    <input type="text" id="searchBox" placeholder="ค้นหาชื่อโครงการ / ที่อยู่ / รหัสโครงการ..." />
+    <button class="btn ghost" id="resetBtn">ล้างตัวกรอง</button>
+    <button class="btn pdf" id="exportPdfBtn">📄 Export PDF</button>
+    <button class="btn xls" id="exportXlsBtn">📊 Export Excel</button>
+  </div>
+
+  <div class="filterGroup">
+    <div class="filterLabel">ฝ่าย</div>
+    <div class="chipRow" id="chips-dept"></div>
+  </div>
+  <div class="filterGroup">
+    <div class="filterLabel">เกรดความสำคัญ</div>
+    <div class="chipRow" id="chips-grade"></div>
+  </div>
+  <div class="filterGroup">
+    <div class="filterLabel">การพิจารณาใช้ประโยชน์</div>
+    <div class="chipRow" id="chips-usage"></div>
+  </div>
+  <div class="filterGroup">
+    <div class="filterLabel">พิกัดแผนที่</div>
+    <div class="chipRow" id="chips-geo">
+      <div class="chip g-geo" data-value="geo">📍 มีพิกัดบนแผนที่เท่านั้น</div>
+    </div>
+  </div>
 </div>
 
 <main>
@@ -144,6 +173,13 @@ const DATA = [{"no":1,"dept":"ชบ.","div":"ตบ.2","proj_code":"I34001","br
 
 const gradeColor = { A:'#2ecc71', B:'#f4c542', C:'#ff9f43', D:'#ff5c5c' };
 
+// ---- filter state ----
+const state = { dept: new Set(), grade: new Set(), usage: new Set(), geo: false, q: '' };
+
+function gradeLetter(g){
+  return g && ['A','B','C','D'].includes(g) ? g : null;
+}
+
 // ---- init map ----
 const map = L.map('map', { zoomControl: true }).setView([13.75, 101.0], 6);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -153,10 +189,6 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
 
 const clusterGroup = L.markerClusterGroup({ maxClusterRadius: 45 });
 map.addLayer(clusterGroup);
-
-function gradeLetter(g){
-  return g && ['A','B','C','D'].includes(g) ? g : null;
-}
 
 function makeIcon(letter){
   const color = gradeColor[letter] || '#5b6478';
@@ -174,8 +206,6 @@ function mapLink(r){
   return null;
 }
 
-// Opens Google Street View at the nearest available panorama to the given point.
-// Uses Google's public "Maps URLs" scheme (no API key required).
 function streetViewLink(r){
   if (r.lat && r.lng){
     return `https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${r.lat},${r.lng}`;
@@ -191,7 +221,11 @@ function areaText(r){
   return parts.join(' ') || '-';
 }
 
-let markers = {}; // no -> marker
+function escapeHtml(s){
+  return (s||'').toString().replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+let markers = {};
 
 function buildMarkers(rows){
   clusterGroup.clearLayers();
@@ -219,32 +253,82 @@ function buildMarkers(rows){
   });
 }
 
-function escapeHtml(s){
-  return (s||'').toString().replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+// ---- build chip option lists (static, from full dataset) ----
+const deptOptions = [...new Set(DATA.map(r=>r.dept).filter(Boolean))].sort();
+const usageOptions = [...new Set(DATA.map(r=>r.usage_status).filter(Boolean))].sort();
+const gradeOptions = ['A','B','C','D'];
+const gradeLabels = { A:'A พื้นที่มีศักยภาพ', B:'B มีสิ่งกีดขวาง', C:'C อยู่ในซอย', D:'D ไม่มีศักยภาพ' };
+
+function baseMatch(r, exclude){
+  if (state.q){
+    const hay = [r.proj_name, r.address, r.proj_code, r.branch, r.usage_type].join(' ').toLowerCase();
+    if (!hay.includes(state.q)) return false;
+  }
+  if (exclude !== 'dept' && state.dept.size && !state.dept.has(r.dept)) return false;
+  if (exclude !== 'grade' && state.grade.size && !state.grade.has(gradeLetter(r.grade))) return false;
+  if (exclude !== 'usage' && state.usage.size && !state.usage.has(r.usage_status)) return false;
+  if (exclude !== 'geo' && state.geo && !(r.lat && r.lng)) return false;
+  return true;
 }
 
-// ---- populate dept filter ----
-const deptSet = [...new Set(DATA.map(r=>r.dept).filter(Boolean))].sort();
-const deptSelect = document.getElementById('deptFilter');
-deptSet.forEach(d => {
-  const opt = document.createElement('option');
-  opt.value = d; opt.textContent = d;
-  deptSelect.appendChild(opt);
-});
+function renderChips(){
+  const containers = {
+    dept: document.getElementById('chips-dept'),
+    grade: document.getElementById('chips-grade'),
+    usage: document.getElementById('chips-usage')
+  };
+  containers.dept.innerHTML = '';
+  deptOptions.forEach(v => {
+    const cnt = DATA.filter(r => r.dept === v && baseMatch(r, 'dept')).length;
+    const chip = document.createElement('div');
+    chip.className = 'chip g-dept' + (state.dept.has(v) ? ' active' : '') + (cnt === 0 ? ' disabled' : '');
+    chip.innerHTML = `${escapeHtml(v)}<span class="cnt">${cnt}</span>`;
+    chip.addEventListener('click', () => { toggle(state.dept, v); applyFilters(); });
+    containers.dept.appendChild(chip);
+  });
 
-// ---- stats ----
-function renderStats(rows){
+  containers.grade.innerHTML = '';
+  gradeOptions.forEach(v => {
+    const cnt = DATA.filter(r => gradeLetter(r.grade) === v && baseMatch(r, 'grade')).length;
+    const chip = document.createElement('div');
+    chip.className = 'chip g-' + v + (state.grade.has(v) ? ' active' : '') + (cnt === 0 ? ' disabled' : '');
+    chip.innerHTML = `${escapeHtml(gradeLabels[v])}<span class="cnt">${cnt}</span>`;
+    chip.addEventListener('click', () => { toggle(state.grade, v); applyFilters(); });
+    containers.grade.appendChild(chip);
+  });
+
+  containers.usage.innerHTML = '';
+  usageOptions.forEach(v => {
+    const cnt = DATA.filter(r => r.usage_status === v && baseMatch(r, 'usage')).length;
+    const chip = document.createElement('div');
+    chip.className = 'chip g-usage' + (state.usage.has(v) ? ' active' : '') + (cnt === 0 ? ' disabled' : '');
+    chip.innerHTML = `${escapeHtml(v)}<span class="cnt">${cnt}</span>`;
+    chip.addEventListener('click', () => { toggle(state.usage, v); applyFilters(); });
+    containers.usage.appendChild(chip);
+  });
+
+  const geoChip = document.querySelector('#chips-geo .chip');
+  geoChip.classList.toggle('active', state.geo);
+  geoChip.onclick = () => { state.geo = !state.geo; applyFilters(); };
+}
+
+function toggle(set, v){
+  if (set.has(v)) set.delete(v); else set.add(v);
+}
+
+// ---- KPI ----
+function renderKpi(rows){
   const total = rows.length;
   const withGeo = rows.filter(r=>r.lat && r.lng).length;
   const byGrade = {A:0,B:0,C:0,D:0};
   rows.forEach(r => { const g = gradeLetter(r.grade); if(g) byGrade[g]++; });
-  document.getElementById('statsBar').innerHTML = `
-    <div class="stat"><b>${total}</b><span>รายการทั้งหมด</span></div>
-    <div class="stat"><b>${withGeo}</b><span>มีพิกัดแผนที่</span></div>
-    <div class="stat"><b style="color:${gradeColor.A}">${byGrade.A}</b><span>เกรด A</span></div>
-    <div class="stat"><b style="color:${gradeColor.B}">${byGrade.B}</b><span>เกรด B</span></div>
-    <div class="stat"><b style="color:${gradeColor.C}">${byGrade.C}</b><span>เกรด C</span></div>
-    <div class="stat"><b style="color:${gradeColor.D}">${byGrade.D}</b><span>เกรด D</span></div>
+  document.getElementById('kpiBar').innerHTML = `
+    <div class="kcard"><b>${total.toLocaleString()}</b><span>รายการทั้งหมด</span></div>
+    <div class="kcard k-geo"><b>${withGeo.toLocaleString()}</b><span>มีพิกัดแผนที่</span></div>
+    <div class="kcard k-A"><b>${byGrade.A}</b><span>เกรด A</span></div>
+    <div class="kcard k-B"><b>${byGrade.B}</b><span>เกรด B</span></div>
+    <div class="kcard k-C"><b>${byGrade.C}</b><span>เกรด C</span></div>
+    <div class="kcard k-D"><b>${byGrade.D}</b><span>เกรด D</span></div>
   `;
 }
 
@@ -299,38 +383,24 @@ function highlightCard(no){
   if (el){ el.classList.add('active'); el.scrollIntoView({behavior:'smooth', block:'center'}); }
 }
 
-// ---- filtering ----
+let currentRows = [];
+
+// ---- apply filters (drives table + map together) ----
 function applyFilters(){
-  const q = document.getElementById('searchBox').value.trim().toLowerCase();
-  const dept = document.getElementById('deptFilter').value;
-  const grade = document.getElementById('gradeFilter').value;
-  const geoOnly = document.getElementById('geoFilter').value === 'geo';
+  state.q = document.getElementById('searchBox').value.trim().toLowerCase();
 
-  const rows = DATA.filter(r => {
-    if (dept && r.dept !== dept) return false;
-    if (grade && gradeLetter(r.grade) !== grade) return false;
-    if (geoOnly && !(r.lat && r.lng)) return false;
-    if (q){
-      const hay = [r.proj_name, r.address, r.proj_code, r.branch, r.usage_type].join(' ').toLowerCase();
-      if (!hay.includes(q)) return false;
-    }
-    return true;
-  });
+  currentRows = DATA.filter(r => baseMatch(r, null));
 
-  renderStats(rows);
-  renderList(rows);
-  buildMarkers(rows);
+  renderKpi(currentRows);
+  renderList(currentRows);
+  buildMarkers(currentRows);
+  renderChips();
 }
 
 document.getElementById('searchBox').addEventListener('input', debounce(applyFilters, 200));
-document.getElementById('deptFilter').addEventListener('change', applyFilters);
-document.getElementById('gradeFilter').addEventListener('change', applyFilters);
-document.getElementById('geoFilter').addEventListener('change', applyFilters);
 document.getElementById('resetBtn').addEventListener('click', () => {
   document.getElementById('searchBox').value = '';
-  document.getElementById('deptFilter').value = '';
-  document.getElementById('gradeFilter').value = '';
-  document.getElementById('geoFilter').value = '';
+  state.dept.clear(); state.grade.clear(); state.usage.clear(); state.geo = false; state.q = '';
   applyFilters();
 });
 
@@ -338,6 +408,89 @@ function debounce(fn, ms){
   let t;
   return (...args) => { clearTimeout(t); t = setTimeout(() => fn(...args), ms); };
 }
+
+// ---- Export: PDF (printable report in a new tab) ----
+document.getElementById('exportPdfBtn').addEventListener('click', () => {
+  const rows = currentRows;
+  const win = window.open('', '_blank');
+  const tableRows = rows.map(r => `
+    <tr>
+      <td>${r.no ?? ''}</td>
+      <td>${escapeHtml(r.dept)}</td>
+      <td>${escapeHtml(r.div)}</td>
+      <td>${escapeHtml(r.proj_code)}</td>
+      <td>${escapeHtml(r.proj_name)}</td>
+      <td>${escapeHtml(gradeLetter(r.grade) || '-')}</td>
+      <td>${escapeHtml(r.usage_status)}</td>
+      <td>${escapeHtml(r.status)}</td>
+      <td>${escapeHtml(areaText(r))}</td>
+      <td>${escapeHtml(r.address)}</td>
+    </tr>`).join('');
+  win.document.write(`
+    <!DOCTYPE html><html lang="th"><head><meta charset="UTF-8">
+    <title>รายงานพื้นที่จัดประโยชน์ กคช.</title>
+    <style>
+      body{ font-family:"Sarabun","Segoe UI",Tahoma,sans-serif; padding:24px; color:#111; }
+      h1{ font-size:18px; margin-bottom:4px; }
+      p.meta{ font-size:12px; color:#555; margin-top:0; margin-bottom:16px; }
+      table{ width:100%; border-collapse:collapse; font-size:11px; }
+      th, td{ border:1px solid #ccc; padding:5px 6px; text-align:left; vertical-align:top; }
+      th{ background:#f0f0f0; }
+      @media print{ button{ display:none; } }
+    </style></head><body>
+    <h1>รายงานพื้นที่จัดประโยชน์ กคช.</h1>
+    <p class="meta">จำนวน ${rows.length.toLocaleString()} รายการ · พิมพ์เมื่อ ${new Date().toLocaleString('th-TH')}</p>
+    <button onclick="window.print()">พิมพ์ / บันทึกเป็น PDF</button>
+    <table>
+      <thead><tr>
+        <th>ลำดับ</th><th>ฝ่าย</th><th>กอง</th><th>รหัสโครงการ</th><th>ชื่อโครงการ</th>
+        <th>เกรด</th><th>การพิจารณาใช้ประโยชน์</th><th>สถานะ</th><th>เนื้อที่</th><th>ที่อยู่</th>
+      </tr></thead>
+      <tbody>${tableRows}</tbody>
+    </table>
+    </body></html>
+  `);
+  win.document.close();
+  setTimeout(() => win.print(), 400);
+});
+
+// ---- Export: Excel (.xls via HTML table blob) ----
+document.getElementById('exportXlsBtn').addEventListener('click', () => {
+  const rows = currentRows;
+  const headers = ['ลำดับ','ฝ่าย','กอง','รหัสโครงการ','ชื่อโครงการ','เกรด','การพิจารณาใช้ประโยชน์','สถานะ','เนื้อที่','ที่อยู่','ลิงก์แผนที่','ละติจูด','ลองจิจูด'];
+  const bodyRows = rows.map(r => `
+    <tr>
+      <td>${r.no ?? ''}</td>
+      <td>${escapeHtml(r.dept)}</td>
+      <td>${escapeHtml(r.div)}</td>
+      <td>${escapeHtml(r.proj_code)}</td>
+      <td>${escapeHtml(r.proj_name)}</td>
+      <td>${escapeHtml(gradeLetter(r.grade) || '')}</td>
+      <td>${escapeHtml(r.usage_status)}</td>
+      <td>${escapeHtml(r.status)}</td>
+      <td>${escapeHtml(areaText(r))}</td>
+      <td>${escapeHtml(r.address)}</td>
+      <td>${escapeHtml(mapLink(r) || '')}</td>
+      <td>${r.lat ?? ''}</td>
+      <td>${r.lng ?? ''}</td>
+    </tr>`).join('');
+  const html = `
+    <html><head><meta charset="UTF-8"></head><body>
+    <table border="1">
+      <tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr>
+      ${bodyRows}
+    </table>
+    </body></html>`;
+  const blob = new Blob(['\ufeff' + html], { type: 'application/vnd.ms-excel;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `พื้นที่จัดประโยชน์_${rows.length}รายการ.xls`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+});
 
 // ---- initial render ----
 applyFilters();
