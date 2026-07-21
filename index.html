@@ -174,6 +174,15 @@ function mapLink(r){
   return null;
 }
 
+// Opens Google Street View at the nearest available panorama to the given point.
+// Uses Google's public "Maps URLs" scheme (no API key required).
+function streetViewLink(r){
+  if (r.lat && r.lng){
+    return `https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${r.lat},${r.lng}`;
+  }
+  return null;
+}
+
 function areaText(r){
   const parts = [];
   if (r.rai) parts.push(r.rai + ' ไร่');
@@ -192,12 +201,16 @@ function buildMarkers(rows){
       const letter = gradeLetter(r.grade);
       const m = L.marker([r.lat, r.lng], { icon: makeIcon(letter) });
       const link = mapLink(r);
+      const svLink = streetViewLink(r);
       m.bindPopup(`
         <div class="popup-title">${escapeHtml(r.proj_name || '(ไม่ระบุชื่อโครงการ)')}</div>
         <div class="popup-meta">${escapeHtml(r.dept||'')} ${escapeHtml(r.div||'')} · เกรด ${letter||'-'} · ${escapeHtml(areaText(r))}</div>
         <div class="popup-meta">${escapeHtml(r.address||'')}</div>
         <div class="popup-meta">${escapeHtml(r.usage_type||'')}</div>
-        ${link ? `<a class="popup-link" href="${link}" target="_blank">เปิดใน Google Maps →</a>` : ''}
+        <div style="display:flex;gap:10px;margin-top:6px;">
+          ${link ? `<a class="popup-link" href="${link}" target="_blank">🗺️ Google Maps</a>` : ''}
+          ${svLink ? `<a class="popup-link" href="${svLink}" target="_blank">🚶 Street View</a>` : ''}
+        </div>
       `);
       m.on('click', () => highlightCard(r.no));
       markers[r.no] = m;
@@ -247,6 +260,7 @@ function renderList(rows){
     card.className = 'card';
     card.dataset.no = r.no;
     const link = mapLink(r);
+    const svLink = streetViewLink(r);
     card.innerHTML = `
       <div class="card-top">
         <div class="card-title">${escapeHtml(r.proj_name || '(ไม่ระบุชื่อ)')}</div>
@@ -256,7 +270,8 @@ function renderList(rows){
       <div class="card-addr">${escapeHtml(r.address || r.usage_type || '')}</div>
       <div class="card-links">
         ${ (r.lat && r.lng) ? `<span class="no-geo-tag">📍 พิกัดบนแผนที่</span>` : `<span class="no-geo-tag">⚠️ ไม่มีพิกัดระบุ</span>`}
-        ${link ? `<a href="${link}" target="_blank" onclick="event.stopPropagation()">เปิด Google Maps →</a>` : ''}
+        ${link ? `<a href="${link}" target="_blank" onclick="event.stopPropagation()">🗺️ Google Maps</a>` : ''}
+        ${svLink ? `<a href="${svLink}" target="_blank" onclick="event.stopPropagation()">🚶 Street View</a>` : ''}
       </div>
     `;
     card.addEventListener('click', () => {
