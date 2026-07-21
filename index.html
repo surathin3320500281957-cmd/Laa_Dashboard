@@ -362,7 +362,11 @@
   <div class="detail-head">
     <button class="detail-close" id="detailClose">✕</button>
   </div>
-  <div class="detail-body" id="detailBody"></div>
+  <div class="detail-body">
+    <div id="detailMiniMap" style="width:100%;height:180px;border-radius:12px;margin:4px 0 12px;border:1px solid var(--border);"></div>
+    <div id="detailNoGeo" style="display:none;padding:14px;background:var(--panel2);border-radius:12px;color:var(--muted);font-size:12px;margin:4px 0 12px;">⚠️ ไม่มีพิกัดสำหรับแสดงแผนที่ย่อ</div>
+    <div id="detailBody"></div>
+  </div>
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -372,6 +376,9 @@ const DATA = [{"no":1,"dept":"ชบ.","div":"ตบ.2","proj_code":"I34001","br
 let detailMap = null;
 let markers = {};
 let currentRows = [];
+let detailMarker = null;
+let miniIsSatellite = false;
+let miniBaseLayer = null;
 
 const stageDefs = [
   { key:'none', label:'ยังไม่เริ่มพิจารณา', color:'#98a2ba' },
@@ -452,16 +459,16 @@ function gradeLetter(g){
 
 function streetTileLayer(){
   return L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '&copy; OpenStreetMap contributors', maxZoom: 19
+    attribution: '&copy; OpenStreetMap contributors', maxZoom: 19, keepBuffer: 1, updateWhenIdle: true
   });
 }
 function satelliteTileLayer(){
   return L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
-    attribution: 'Tiles &copy; Esri', maxZoom: 19
+    attribution: 'Tiles &copy; Esri', maxZoom: 19, keepBuffer: 1, updateWhenIdle: true
   });
 }
 
-const map = L.map('map', { zoomControl: true }).setView([13.75, 101.0], 6);
+const map = L.map('map', { zoomControl: true, preferCanvas: true, zoomAnimation: false, markerZoomAnimation: false }).setView([13.75, 101.0], 6);
 let mainIsSatellite = false;
 let mainBaseLayer = streetTileLayer().addTo(map);
 
@@ -928,7 +935,6 @@ function openDetail(no){
   const pClass = oCount === 3 ? 'p-done' : oCount === 0 ? 'p-none' : 'p-mid';
 
   document.getElementById('detailBody').innerHTML = `
-    ${ (r.lat && r.lng) ? `<div id="detailMiniMap"></div>` : `<div style="padding:14px;background:var(--panel2);border-radius:12px;color:var(--muted);font-size:12px;margin:4px 0 12px;">⚠️ ไม่มีพิกัดสำหรับแสดงแผนที่ย่อ</div>` }
     <p class="detail-title">${escapeHtml(r.proj_name || '(ไม่ระบุชื่อโครงการ)')}</p>
     <p class="detail-meta">${escapeHtml(r.dept||'')} ${escapeHtml(r.div||'')} · ${escapeHtml(r.proj_code||'')} · เกรด ${letter||'-'} · ${escapeHtml(areaText(r))}</p>
     <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;">
@@ -946,43 +952,30 @@ function openDetail(no){
   document.getElementById('detailOverlay').classList.add('open');
   document.getElementById('detailPanel').classList.add('open');
 
-  // clean up any previous mini-map instance defensively before creating a new one
-  try { if (detailMap) { detailMap.remove(); } } catch(e) { console.warn('detailMap cleanup:', e); }
-  detailMap = null;
+  const mapEl = document.getElementById('detailMiniMap');
+  const noGeoEl = document.getElementById('detailNoGeo');
 
   if (r.lat && r.lng){
-    setTimeout(() => {
-      const el = document.getElementById('detailMiniMap');
-      if (!el) return; // panel content changed again before this ran
-      try {
-        detailMap = L.map(el, { zoomControl:false, attributionControl:false, dragging:false, scrollWheelZoom:false, doubleClickZoom:false }).setView([r.lat, r.lng], 16);
-        let miniIsSatellite = false;
-        let miniBaseLayer = streetTileLayer().addTo(detailMap);
-        L.marker([r.lat, r.lng], { icon: makeIcon(letter) }).addTo(detailMap);
-
-        const MiniToggleControl = L.Control.extend({
-          options: { position: 'topright' },
-          onAdd: function(){
-            const btn = L.DomUtil.create('div', 'map-toggle-btn mini');
-            btn.innerHTML = '🛰️ ดาวเทียม';
-            L.DomEvent.disableClickPropagation(btn);
-            btn.onclick = function(){
-              miniIsSatellite = !miniIsSatellite;
-              detailMap.removeLayer(miniBaseLayer);
-              miniBaseLayer = (miniIsSatellite ? satelliteTileLayer() : streetTileLayer()).addTo(detailMap);
-              btn.innerHTML = miniIsSatellite ? '🗺️ ถนน' : '🛰️ ดาวเทียม';
-            };
-            return btn;
-          }
-        });
-        detailMap.addControl(new MiniToggleControl());
-
-        setTimeout(() => { if (detailMap) detailMap.invalidateSize(); }, 200);
-      } catch(e) {
-        console.warn('detailMap init failed:', e);
-        el.innerHTML = '<div style="padding:14px;color:var(--muted);font-size:12px;">ไม่สามารถโหลดแผนที่ย่อได้</div>';
+    mapEl.style.display = 'block';
+    noGeoEl.style.display = 'none';
+    try {
+      ensureDetailMap(); // creates the map+control only once, ever
+      detailMap.setView([r.lat, r.lng], 16);
+      if (detailMarker){
+        detailMarker.setLatLng([r.lat, r.lng]).setIcon(makeIcon(letter));
+      } else {
+        detailMarker = L.marker([r.lat, r.lng], { icon: makeIcon(letter) }).addTo(detailMap);
       }
-    }, 150);
+      setTimeout(() => { if (detailMap) detailMap.invalidateSize(); }, 50);
+    } catch(e) {
+      console.warn('detailMap update failed:', e);
+      mapEl.style.display = 'none';
+      noGeoEl.style.display = 'block';
+      noGeoEl.textContent = '⚠️ ไม่สามารถโหลดแผนที่ย่อได้';
+    }
+  } else {
+    mapEl.style.display = 'none';
+    noGeoEl.style.display = 'block';
   }
   } catch(e) {
     console.error('openDetail failed:', e);
@@ -992,11 +985,35 @@ function openDetail(no){
   }
 }
 
+function ensureDetailMap(){
+  if (detailMap) return; // already created, reuse it
+  const el = document.getElementById('detailMiniMap');
+  detailMap = L.map(el, { zoomControl:false, attributionControl:false, dragging:false, scrollWheelZoom:false, doubleClickZoom:false, zoomAnimation:false, markerZoomAnimation:false, preferCanvas:true }).setView([13.75, 101.0], 16);
+  miniBaseLayer = streetTileLayer().addTo(detailMap);
+
+  const MiniToggleControl = L.Control.extend({
+    options: { position: 'topright' },
+    onAdd: function(){
+      const btn = L.DomUtil.create('div', 'map-toggle-btn mini');
+      btn.innerHTML = '🛰️ ดาวเทียม';
+      L.DomEvent.disableClickPropagation(btn);
+      btn.onclick = function(){
+        miniIsSatellite = !miniIsSatellite;
+        detailMap.removeLayer(miniBaseLayer);
+        miniBaseLayer = (miniIsSatellite ? satelliteTileLayer() : streetTileLayer()).addTo(detailMap);
+        btn.innerHTML = miniIsSatellite ? '🗺️ ถนน' : '🛰️ ดาวเทียม';
+      };
+      return btn;
+    }
+  });
+  detailMap.addControl(new MiniToggleControl());
+}
+
 function closeDetail(){
   document.getElementById('detailOverlay').classList.remove('open');
   document.getElementById('detailPanel').classList.remove('open');
-  try { if (detailMap) { detailMap.remove(); } } catch(e) { console.warn('detailMap cleanup on close:', e); }
-  detailMap = null;
+  // note: detailMap is intentionally NOT destroyed here — it's a single reused
+  // instance (see ensureDetailMap) to avoid repeated create/destroy overhead.
 }
 document.getElementById('detailClose').addEventListener('click', closeDetail);
 document.getElementById('detailOverlay').addEventListener('click', closeDetail);
