@@ -158,6 +158,11 @@
   .badge-C{ background:var(--C); } .badge-D{ background:var(--D); }
   .badge-none{ background:var(--none); color:#fff; }
   .card-meta{ font-size:11.5px; color:var(--muted); margin-top:4px; line-height:1.5; }
+  .deed-badge{
+    display:inline-flex; align-items:center; gap:4px; font-size:11.5px; font-weight:800;
+    background:#fff4d6; color:#9a6b00; border:1px solid #f5cf6b; padding:3px 10px;
+    border-radius:20px; margin-top:6px;
+  }
   .card-addr{ font-size:12px; color:#333d58; margin-top:6px; line-height:1.4; }
   .card-links{ margin-top:8px; display:flex; gap:8px; flex-wrap:wrap; }
   .card-links a{
@@ -198,7 +203,7 @@
 
 <div class="filterPanel">
   <div class="filterTop">
-    <input type="text" id="searchBox" placeholder="ค้นหาชื่อโครงการ / ที่อยู่ / รหัสโครงการ..." />
+    <input type="text" id="searchBox" placeholder="ค้นหาชื่อโครงการ / ที่อยู่ / รหัสโครงการ / เลขที่โฉนด..." />
     <button class="btn ghost" id="resetBtn">ล้างตัวกรอง</button>
     <button class="btn pdf" id="exportPdfBtn">📄 Export PDF</button>
     <button class="btn xls" id="exportXlsBtn">📊 Export Excel</button>
@@ -326,7 +331,7 @@ function buildMarkers(rows){
       m.bindPopup(`
         <div class="popup-title">${escapeHtml(r.proj_name || '(ไม่ระบุชื่อโครงการ)')}</div>
         <div class="popup-meta">${escapeHtml(r.dept||'')} ${escapeHtml(r.div||'')} · เกรด ${letter||'-'} · ${escapeHtml(areaText(r))}</div>
-        <div class="popup-meta">โฉนดเลขที่ ${r.deed_no ?? '-'}</div>
+        <div><span class="deed-badge">📜 โฉนดเลขที่ ${r.deed_no ?? '-'}</span></div>
         <div class="popup-meta">${escapeHtml(r.address||'')}</div>
         <div class="popup-meta">${escapeHtml(r.usage_type||'')}</div>
         <div style="display:flex;gap:10px;margin-top:6px;">
@@ -353,7 +358,7 @@ const gradeLabels = { A:'A พื้นที่มีศักยภาพ', B:
 
 function baseMatch(r, exclude){
   if (state.q){
-    const hay = [r.proj_name, r.address, r.proj_code, r.branch, r.usage_type].join(' ').toLowerCase();
+    const hay = [r.proj_name, r.address, r.proj_code, r.branch, r.usage_type, r.deed_no].join(' ').toLowerCase();
     if (!hay.includes(state.q)) return false;
   }
   if (exclude !== 'dept' && state.dept.size && !state.dept.has(r.dept)) return false;
@@ -499,7 +504,7 @@ function renderList(rows){
         <span class="badge ${letter ? 'badge-'+letter : 'badge-none'}">${letter || '-'}</span>
       </div>
       <div class="card-meta">${escapeHtml(r.dept||'')} ${escapeHtml(r.div||'')} · ${escapeHtml(r.proj_code||'')} · ${escapeHtml(areaText(r))}</div>
-      <div class="card-meta">📜 โฉนดเลขที่ ${r.deed_no ?? '-'}</div>
+      <div><span class="deed-badge">📜 โฉนดเลขที่ ${r.deed_no ?? '-'}</span></div>
       <div class="card-addr">${escapeHtml(r.address || r.usage_type || '')}</div>
       <div class="card-links">
         ${ (r.lat && r.lng) ? `<span class="no-geo-tag">📍 พิกัดบนแผนที่</span>` : `<span class="no-geo-tag">⚠️ ไม่มีพิกัดระบุ</span>`}
