@@ -148,6 +148,14 @@
   .comboItem.selected .cnt{ background:#e2d8ff; color:var(--purple); }
   .comboItem.disabled{ opacity:.35; pointer-events:none; }
 
+  .map-toggle-btn{
+    background:#fff; padding:6px 12px; border-radius:20px; font-size:12px; font-weight:700;
+    box-shadow:var(--shadow-md); cursor:pointer; border:1px solid var(--border); color:var(--text);
+    margin:8px; white-space:nowrap; user-select:none;
+  }
+  .map-toggle-btn:hover{ border-color:var(--accent); color:var(--accent); }
+  .map-toggle-btn.mini{ font-size:10.5px; padding:4px 8px; margin:6px; }
+
   main{ flex:1; display:flex; overflow:hidden; }
   #map{ flex:1.3; min-width:0; }
 
@@ -442,11 +450,37 @@ function gradeLetter(g){
   return g && ['A','B','C','D'].includes(g) ? g : null;
 }
 
+function streetTileLayer(){
+  return L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; OpenStreetMap contributors', maxZoom: 19
+  });
+}
+function satelliteTileLayer(){
+  return L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+    attribution: 'Tiles &copy; Esri', maxZoom: 19
+  });
+}
+
 const map = L.map('map', { zoomControl: true }).setView([13.75, 101.0], 6);
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-  attribution: '&copy; OpenStreetMap contributors',
-  maxZoom: 19
-}).addTo(map);
+let mainIsSatellite = false;
+let mainBaseLayer = streetTileLayer().addTo(map);
+
+const MapToggleControl = L.Control.extend({
+  options: { position: 'topright' },
+  onAdd: function(){
+    const btn = L.DomUtil.create('div', 'map-toggle-btn');
+    btn.innerHTML = '🛰️ ภาพถ่ายดาวเทียม';
+    L.DomEvent.disableClickPropagation(btn);
+    btn.onclick = function(){
+      mainIsSatellite = !mainIsSatellite;
+      map.removeLayer(mainBaseLayer);
+      mainBaseLayer = (mainIsSatellite ? satelliteTileLayer() : streetTileLayer()).addTo(map);
+      btn.innerHTML = mainIsSatellite ? '🗺️ แผนที่ถนน' : '🛰️ ภาพถ่ายดาวเทียม';
+    };
+    return btn;
+  }
+});
+map.addControl(new MapToggleControl());
 
 const clusterGroup = L.markerClusterGroup({ maxClusterRadius: 45 });
 map.addLayer(clusterGroup);
@@ -922,8 +956,27 @@ function openDetail(no){
       if (!el) return; // panel content changed again before this ran
       try {
         detailMap = L.map(el, { zoomControl:false, attributionControl:false, dragging:false, scrollWheelZoom:false, doubleClickZoom:false }).setView([r.lat, r.lng], 16);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom:19 }).addTo(detailMap);
+        let miniIsSatellite = false;
+        let miniBaseLayer = streetTileLayer().addTo(detailMap);
         L.marker([r.lat, r.lng], { icon: makeIcon(letter) }).addTo(detailMap);
+
+        const MiniToggleControl = L.Control.extend({
+          options: { position: 'topright' },
+          onAdd: function(){
+            const btn = L.DomUtil.create('div', 'map-toggle-btn mini');
+            btn.innerHTML = '🛰️ ดาวเทียม';
+            L.DomEvent.disableClickPropagation(btn);
+            btn.onclick = function(){
+              miniIsSatellite = !miniIsSatellite;
+              detailMap.removeLayer(miniBaseLayer);
+              miniBaseLayer = (miniIsSatellite ? satelliteTileLayer() : streetTileLayer()).addTo(detailMap);
+              btn.innerHTML = miniIsSatellite ? '🗺️ ถนน' : '🛰️ ดาวเทียม';
+            };
+            return btn;
+          }
+        });
+        detailMap.addControl(new MiniToggleControl());
+
         setTimeout(() => { if (detailMap) detailMap.invalidateSize(); }, 200);
       } catch(e) {
         console.warn('detailMap init failed:', e);
