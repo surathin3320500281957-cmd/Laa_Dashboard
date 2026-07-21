@@ -55,13 +55,29 @@
   .btn.pdf{ background:#e5484d; } .btn.pdf:hover{ background:#c93d41; }
   .btn.xls{ background:#1fa971; } .btn.xls:hover{ background:#178457; }
 
-  .filterGrid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:16px 24px; }
-  .filterGroup{ }
-  .filterLabel{ font-size:11.5px; font-weight:700; color:#4a5170; margin-bottom:6px; text-transform:uppercase; letter-spacing:.02em; }
+  .filterGrid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:14px; align-items:start; }
+  .filterGroup{
+    border-radius:12px; padding:12px 14px; border:1px solid var(--border); background:var(--panel2);
+  }
+  .filterGroup.zone-dept{ background:#f2eeff; border-color:#d7cbff; }
+  .filterGroup.zone-grade{ background:#f4f7ff; border-color:#dbe4fb; }
+  .filterGroup.zone-usage{ background:#e7fbf3; border-color:#bcefdc; }
+  .filterGroup.zone-status{ background:#e8f5ff; border-color:#bfe1fb; }
+  .filterGroup.zone-area{ background:#ffeef5; border-color:#fbc9de; }
+  .filterGroup.zone-land{ background:#e4faf9; border-color:#b7ede9; }
+  .filterGroup.zone-geo{ background:#eaf0ff; border-color:#c5d4fc; }
+  .filterLabel{ font-size:11.5px; font-weight:700; margin-bottom:8px; text-transform:uppercase; letter-spacing:.02em; }
+  .zone-dept .filterLabel{ color:#6a3fd6; }
+  .zone-grade .filterLabel{ color:#3b5bdb; }
+  .zone-usage .filterLabel{ color:#0a8f66; }
+  .zone-status .filterLabel{ color:#1c7ed6; }
+  .zone-area .filterLabel{ color:#d6336c; }
+  .zone-land .filterLabel{ color:#0b9c93; }
+  .zone-geo .filterLabel{ color:#3b6df0; }
   .chipRow{ display:flex; flex-wrap:wrap; gap:6px; }
   .chip{
     font-size:12px; padding:5px 12px; border-radius:20px; cursor:pointer; user-select:none;
-    background:var(--panel2); border:1px solid var(--border); color:var(--text); transition:.12s; font-weight:500;
+    background:#fff; border:1px solid var(--border); color:var(--text); transition:.12s; font-weight:500;
   }
   .chip:hover{ border-color:var(--accent); }
   .chip.disabled{ opacity:.32; pointer-events:none; }
@@ -145,31 +161,31 @@
   </div>
 
   <div class="filterGrid">
-    <div class="filterGroup">
+    <div class="filterGroup zone-dept">
       <div class="filterLabel">ฝ่าย</div>
       <div class="chipRow" id="chips-dept"></div>
     </div>
-    <div class="filterGroup">
+    <div class="filterGroup zone-grade">
       <div class="filterLabel">เกรดความสำคัญ</div>
       <div class="chipRow" id="chips-grade"></div>
     </div>
-    <div class="filterGroup">
+    <div class="filterGroup zone-usage">
       <div class="filterLabel">การพิจารณาใช้ประโยชน์</div>
       <div class="chipRow" id="chips-usage"></div>
     </div>
-    <div class="filterGroup">
+    <div class="filterGroup zone-status">
       <div class="filterLabel">สถานะการดำเนินงาน ของฝ่ายบริหารงานชุมชน</div>
       <div class="chipRow" id="chips-status"></div>
     </div>
-    <div class="filterGroup">
+    <div class="filterGroup zone-area">
       <div class="filterLabel">ประเภทขนาดพื้นที่ ตาม จป.</div>
       <div class="chipRow" id="chips-area"></div>
     </div>
-    <div class="filterGroup">
+    <div class="filterGroup zone-land">
       <div class="filterLabel">ประเภทที่ดินตามข้อบังคับการขายที่ดิน</div>
       <div class="chipRow" id="chips-land"></div>
     </div>
-    <div class="filterGroup">
+    <div class="filterGroup zone-geo">
       <div class="filterLabel">พิกัดแผนที่</div>
       <div class="chipRow" id="chips-geo">
         <div class="chip g-geo" data-value="geo">📍 มีพิกัดบนแผนที่เท่านั้น</div>
