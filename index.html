@@ -578,7 +578,7 @@ function buildMarkers(rows){
         <div class="popup-meta">${escapeHtml(r.address||'')}</div>
         <div class="popup-meta">${escapeHtml(r.usage_type||'')}</div>
         <div style="display:flex;gap:10px;margin-top:6px;flex-wrap:wrap;">
-          ${link ? `<a class="popup-link" href="${link}" target="_blank">🗺️ Google Maps</a>` : ''}
+          ${link ? `<a class="popup-link" href="${link}" target="_blank">✈️ มุมมองทางอากาศ</a>` : ''}
           ${svLink ? `<a class="popup-link" href="${svLink}" target="_blank">🚶 Street View</a>` : ''}
           <a class="popup-link" href="https://landsmaps.dol.go.th/" target="_blank">🔍 LandsMaps${lmHint ? ' ('+escapeHtml(lmHint)+')' : ''}</a>
         </div>
@@ -775,7 +775,7 @@ function renderList(rows){
       <div class="card-addr">${escapeHtml(r.address || r.usage_type || '')}</div>
       <div class="card-links">
         ${ (r.lat && r.lng) ? (r.approx ? `<span class="no-geo-tag">📍 พิกัดโดยประมาณ</span>` : `<span class="no-geo-tag">📍 พิกัดแม่นยำ</span>`) : `<span class="no-geo-tag">⚠️ ไม่มีพิกัดเลย</span>`}
-        ${link ? `<a href="${link}" target="_blank" onclick="event.stopPropagation()">🗺️ Google Maps</a>` : ''}
+        ${link ? `<a href="${link}" target="_blank" onclick="event.stopPropagation()">✈️ มุมมองทางอากาศ</a>` : ''}
         ${svLink ? `<a href="${svLink}" target="_blank" onclick="event.stopPropagation()">🚶 Street View</a>` : ''}
         <a class="landsmaps-link" href="https://landsmaps.dol.go.th/" target="_blank" onclick="event.stopPropagation()">🔍 ตรวจสอบใน LandsMaps${lmHint ? ' ('+escapeHtml(lmHint)+')' : ''}</a>
         <a href="#" onclick="event.stopPropagation();event.preventDefault();openDetail(${r.no})">📋 ดูลำดับความเห็น</a>
@@ -987,7 +987,7 @@ function openDetail(no){
       ${aLabel ? `<span class="approx-badge">${aLabel}</span>` : ''}
     </div>
     <div class="detail-actions">
-      ${link ? `<a href="${link}" target="_blank">🗺️ เปิด Google Maps</a>` : ''}
+      ${link ? `<a href="${link}" target="_blank">✈️ เปิดมุมมองทางอากาศ</a>` : ''}
       ${svLink ? `<a class="sv" href="${svLink}" target="_blank">🚶 เปิด Street View</a>` : ''}
       <a class="landsmaps-link" href="https://landsmaps.dol.go.th/" target="_blank">🔍 ตรวจสอบใน LandsMaps${lmHint ? ' ('+escapeHtml(lmHint)+')' : ''}</a>
     </div>
