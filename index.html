@@ -235,6 +235,20 @@
   #detailMiniMap{ width:100%; height:180px; border-radius:12px; margin:4px 0 12px; border:1px solid var(--border); }
   .detail-title{ font-size:18px; font-weight:800; color:#121a33; margin:0 0 2px; }
   .detail-meta{ font-size:14px; color:var(--muted); margin-bottom:10px; }
+  .coord-row{
+    display:flex; align-items:center; justify-content:space-between; gap:8px;
+    background:var(--panel2); border:1px solid var(--border); border-radius:10px;
+    padding:8px 12px; margin-bottom:14px; font-family:monospace;
+  }
+  .coord-text{ font-size:12.5px; color:#1a2138; font-weight:600; letter-spacing:.01em; }
+  .coord-copy{
+    font-size:11.5px; font-weight:700; color:#fff; background:var(--accent);
+    border:none; border-radius:8px; padding:5px 12px; cursor:pointer; flex-shrink:0;
+    font-family:"Segoe UI","Sarabun",Tahoma,sans-serif;
+  }
+  .coord-copy:hover{ background:var(--accentDark); }
+  .coord-copy.copied{ background:var(--A); }
+
   .detail-actions{ display:flex; gap:8px; margin-bottom:18px; flex-wrap:wrap; }
   .detail-actions a{
     font-size:14px; font-weight:700; color:#fff; background:var(--accent); text-decoration:none;
@@ -986,6 +1000,11 @@ function openDetail(no){
       <span class="progress-badge ${pClass}">📋 ผ่านความเห็น ${oCount}/3</span>
       ${aLabel ? `<span class="approx-badge">${aLabel}</span>` : ''}
     </div>
+    ${ (r.lat && r.lng) ? `
+    <div class="coord-row">
+      <span class="coord-text">📍 ${r.lat.toFixed(6)}, ${r.lng.toFixed(6)}</span>
+      <button class="coord-copy" onclick="copyCoord(${r.lat}, ${r.lng}, this)">คัดลอก</button>
+    </div>` : ''}
     <div class="detail-actions">
       ${link ? `<a href="${link}" target="_blank">✈️ เปิดมุมมองทางอากาศ</a>` : ''}
       ${svLink ? `<a class="sv" href="${svLink}" target="_blank">🚶 เปิด Street View</a>` : ''}
@@ -1053,6 +1072,31 @@ function ensureDetailMap(){
     }
   });
   detailMap.addControl(new MiniToggleControl());
+}
+
+function copyCoord(lat, lng, btn){
+  const text = `${lat}, ${lng}`;
+  const done = () => {
+    const original = btn.textContent;
+    btn.textContent = 'คัดลอกแล้ว ✓';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = original; btn.classList.remove('copied'); }, 1500);
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(done).catch(() => fallbackCopy(text, done));
+  } else {
+    fallbackCopy(text, done);
+  }
+}
+function fallbackCopy(text, done){
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.position = 'fixed';
+  ta.style.opacity = '0';
+  document.body.appendChild(ta);
+  ta.select();
+  try { document.execCommand('copy'); done(); } catch(e) { console.warn('copy failed', e); }
+  document.body.removeChild(ta);
 }
 
 function closeDetail(){
