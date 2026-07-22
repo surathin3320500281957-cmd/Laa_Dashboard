@@ -248,6 +248,13 @@
   }
   .coord-copy:hover{ background:var(--accentDark); }
   .coord-copy.copied{ background:var(--A); }
+  .mini-copy{
+    font-size:10.5px; font-weight:700; color:#fff; background:var(--accent);
+    border:none; border-radius:12px; padding:2px 9px; cursor:pointer;
+    font-family:"Segoe UI","Sarabun",Tahoma,sans-serif; margin-left:2px;
+  }
+  .mini-copy:hover{ background:var(--accentDark); }
+  .mini-copy.copied{ background:var(--A); }
 
   .detail-actions{ display:flex; gap:8px; margin-bottom:18px; flex-wrap:wrap; }
   .detail-actions a{
@@ -587,7 +594,7 @@ function buildMarkers(rows){
       m.bindPopup(`
         <div class="popup-title">${escapeHtml(r.proj_name || '(ไม่ระบุชื่อโครงการ)')}</div>
         <div class="popup-meta">${escapeHtml(r.dept||'')} ${escapeHtml(r.div||'')} · เกรด ${letter||'-'} · ${escapeHtml(areaText(r))}</div>
-        <div><span class="deed-badge">📜 โฉนดเลขที่ ${r.deed_no ?? '-'}</span></div>
+        <div><span class="deed-badge">📜 โฉนดเลขที่ ${r.deed_no ?? '-'}</span>${r.deed_no ? `<button class="mini-copy" onclick="copyText('${r.deed_no}', this)">คัดลอก</button>` : ''}</div>
         ${aLabel ? `<div><span class="approx-badge">${aLabel}</span></div>` : ''}
         <div class="popup-meta">${escapeHtml(r.address||'')}</div>
         <div class="popup-meta">${escapeHtml(r.usage_type||'')}</div>
@@ -786,7 +793,7 @@ function renderList(rows){
       </div>
       <div class="card-meta">${escapeHtml(r.dept||'')} ${escapeHtml(r.div||'')} · ${escapeHtml(r.proj_code||'')} · ${escapeHtml(areaText(r))}</div>
       <div style="display:flex;gap:6px;flex-wrap:wrap;">
-        <span class="deed-badge">📜 โฉนดเลขที่ ${r.deed_no ?? '-'}</span>
+        <span class="deed-badge">📜 โฉนดเลขที่ ${r.deed_no ?? '-'}</span>${r.deed_no ? `<button class="mini-copy" onclick="event.stopPropagation();copyText('${r.deed_no}', this)">คัดลอก</button>` : ''}
         <span class="progress-badge ${pClass}">📋 ความเห็น ${oCount}/3</span>
         ${aLabel ? `<span class="approx-badge">${aLabel}</span>` : ''}
       </div>
@@ -1000,7 +1007,7 @@ function openDetail(no){
     <p class="detail-title">${escapeHtml(r.proj_name || '(ไม่ระบุชื่อโครงการ)')}</p>
     <p class="detail-meta">${escapeHtml(r.dept||'')} ${escapeHtml(r.div||'')} · ${escapeHtml(r.proj_code||'')} · เกรด ${letter||'-'} · ${escapeHtml(areaText(r))}</p>
     <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;">
-      <span class="deed-badge">📜 โฉนดเลขที่ ${r.deed_no ?? '-'}</span>
+      <span class="deed-badge">📜 โฉนดเลขที่ ${r.deed_no ?? '-'}</span>${r.deed_no ? `<button class="mini-copy" onclick="copyText('${r.deed_no}', this)">คัดลอก</button>` : ''}
       <span class="progress-badge ${pClass}">📋 ผ่านความเห็น ${oCount}/3</span>
       ${aLabel ? `<span class="approx-badge">${aLabel}</span>` : ''}
     </div>
@@ -1079,7 +1086,9 @@ function ensureDetailMap(){
 }
 
 function copyCoord(lat, lng, btn){
-  const text = `${lat}, ${lng}`;
+  copyText(`${lat}, ${lng}`, btn);
+}
+function copyText(text, btn){
   const done = () => {
     const original = btn.textContent;
     btn.textContent = 'คัดลอกแล้ว ✓';
