@@ -538,7 +538,7 @@ function makeIcon(letter, isApprox){
 }
 
 function mapLink(r){
-  if (r.lat && r.lng) return `https://www.google.com/maps/@${r.lat},${r.lng},17z/data=!3m1!1e3`;
+  if (r.lat && r.lng) return `https://www.google.com/maps/place/${r.lat},${r.lng}/@${r.lat},${r.lng},17z/data=!3m1!1e3`;
   if (r.map_raw && /^https?:\/\//.test(r.map_raw)) return r.map_raw;
   return null;
 }
