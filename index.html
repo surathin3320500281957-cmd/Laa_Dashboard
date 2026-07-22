@@ -374,10 +374,6 @@
       <div class="filterLabel">📋 ความคืบหน้าการพิจารณา (Timeline)</div>
       <div class="chipRow" id="chips-stage"></div>
     </div>
-    <div class="filterGroup zone-geo">
-      <div class="filterLabel">พิกัดแผนที่</div>
-      <div class="chipRow" id="chips-geo"></div>
-    </div>
   </div>
 </div>
 
@@ -750,23 +746,6 @@ function renderChips(){
     chip.innerHTML = `${escapeHtml(sd.label)}<span class="cnt">${cnt}</span>`;
     chip.addEventListener('click', () => { toggle(state.stage, sd.key); applyFilters(); });
     document.getElementById('chips-stage').appendChild(chip);
-  });
-
-  const geoDefs = [
-    { key:'precise', label:'🎯 พิกัดแม่นยำ' },
-    { key:'approx',  label:'📍 ประมาณการ (ระดับตำบล)' },
-  ];
-  document.getElementById('chips-geo').innerHTML = '';
-  geoDefs.forEach(gd => {
-    const cnt = DATA.filter(r => {
-      const rType = r.lat && r.lng ? (r.approx ? 'approx' : 'precise') : null;
-      return rType === gd.key && baseMatch(r, 'geoType');
-    }).length;
-    const chip = document.createElement('div');
-    chip.className = 'chip g-geo' + (state.geoType.has(gd.key) ? ' active' : '') + (cnt === 0 ? ' disabled' : '');
-    chip.innerHTML = `${escapeHtml(gd.label)}<span class="cnt">${cnt}</span>`;
-    chip.addEventListener('click', () => { toggle(state.geoType, gd.key); applyFilters(); });
-    document.getElementById('chips-geo').appendChild(chip);
   });
 
   createCombo('combo-div', divOptions, 'div', 'ทุกกอง');
