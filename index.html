@@ -1008,9 +1008,9 @@ function openDetail(no){
       ensureDetailMap(); // creates the map+control only once, ever
       detailMap.setView([r.lat, r.lng], 16);
       if (detailMarker){
-        detailMarker.setLatLng([r.lat, r.lng]).setIcon(makeIcon(letter));
+        detailMarker.setLatLng([r.lat, r.lng]).setIcon(makeIcon(letter, r.approx));
       } else {
-        detailMarker = L.marker([r.lat, r.lng], { icon: makeIcon(letter) }).addTo(detailMap);
+        detailMarker = L.marker([r.lat, r.lng], { icon: makeIcon(letter, r.approx) }).addTo(detailMap);
       }
       setTimeout(() => { if (detailMap) detailMap.invalidateSize(); }, 50);
     } catch(e) {
