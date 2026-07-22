@@ -789,57 +789,78 @@ function renderKpi(rows){
 function renderList(rows){
   document.getElementById('resultCount').textContent = `แสดง ${rows.length.toLocaleString()} รายการ`;
   const listEl = document.getElementById('list');
-  listEl.innerHTML = '';
-  const frag = document.createDocumentFragment();
-  rows.slice(0, 500).forEach(r => {
+  const CAP = 150;
+  const shown = rows.slice(0, CAP);
+
+  const cardsHtml = shown.map(r => {
     const letter = gradeLetter(r.grade);
-    const card = document.createElement('div');
-    card.className = 'card';
-    card.dataset.no = r.no;
     const link = mapLink(r);
     const svLink = streetViewLink(r);
     const oCount = [r.opinion_pk, r.opinion_sw, r.opinion_td].filter(Boolean).length;
     const pClass = oCount === 3 ? 'p-done' : oCount === 0 ? 'p-none' : 'p-mid';
     const aLabel = approxLabel(r);
     const lmHint = landsMapsHint(r);
-    card.innerHTML = `
+    return `
+    <div class="card" data-no="${r.no}">
       <div class="card-top">
         <div class="card-title">${escapeHtml(r.proj_name || '(ไม่ระบุชื่อ)')}</div>
         <span class="badge ${letter ? 'badge-'+letter : 'badge-none'}">${letter || '-'}</span>
       </div>
       <div class="card-meta">${escapeHtml(r.dept||'')} ${escapeHtml(r.div||'')} · ${escapeHtml(r.proj_code||'')} · ${escapeHtml(areaText(r))}</div>
       <div style="display:flex;gap:6px;flex-wrap:wrap;">
-        <span class="deed-badge">📜 โฉนดเลขที่ ${r.deed_no ?? '-'}</span>${r.deed_no ? `<button class="mini-copy" onclick="event.stopPropagation();copyText('${r.deed_no}', this)">คัดลอก</button>` : ''}
+        <span class="deed-badge">📜 โฉนดเลขที่ ${r.deed_no ?? '-'}</span>${r.deed_no ? `<button class="mini-copy" data-action="copy-deed" data-deed="${r.deed_no}">คัดลอก</button>` : ''}
         <span class="progress-badge ${pClass}">📋 ความเห็น ${oCount}/3</span>
         ${aLabel ? `<span class="approx-badge">${aLabel}</span>` : ''}
       </div>
       <div class="card-addr">${escapeHtml(r.address || r.usage_type || '')}</div>
       <div class="card-links">
         ${ (r.lat && r.lng) ? (r.approx ? `<span class="no-geo-tag">📍 พิกัดโดยประมาณ</span>` : `<span class="no-geo-tag">📍 พิกัดแม่นยำ</span>`) : `<span class="no-geo-tag">⚠️ ไม่มีพิกัดเลย</span>`}
-        ${link ? `<a href="${link}" target="_blank" onclick="event.stopPropagation()">✈️ มุมมองทางอากาศ</a>` : ''}
-        ${svLink ? `<a href="${svLink}" target="_blank" onclick="event.stopPropagation()">🚶 Street View</a>` : ''}
-        <a class="landsmaps-link" href="https://landsmaps.dol.go.th/" target="_blank" onclick="event.stopPropagation()">🔍 ตรวจสอบใน LandsMaps${lmHint ? ' ('+escapeHtml(lmHint)+')' : ''}</a>
-        <a href="#" onclick="event.stopPropagation();event.preventDefault();openDetail(${r.no})">📋 ดูลำดับความเห็น</a>
+        ${link ? `<a href="${link}" target="_blank" data-action="stop">✈️ มุมมองทางอากาศ</a>` : ''}
+        ${svLink ? `<a href="${svLink}" target="_blank" data-action="stop">🚶 Street View</a>` : ''}
+        <a class="landsmaps-link" href="https://landsmaps.dol.go.th/" target="_blank" data-action="stop">🔍 ตรวจสอบใน LandsMaps${lmHint ? ' ('+escapeHtml(lmHint)+')' : ''}</a>
+        <a href="#" data-action="detail" data-no="${r.no}">📋 ดูลำดับความเห็น</a>
       </div>
-    `;
-    card.addEventListener('click', () => {
-      if (r.lat && r.lng){
-        map.setView([r.lat, r.lng], 16);
-        const m = markers[r.no];
-        if (m) { clusterGroup.zoomToShowLayer(m, () => m.openPopup()); }
-      }
-      highlightCard(r.no);
-    });
-    frag.appendChild(card);
-  });
-  listEl.appendChild(frag);
-  if (rows.length > 500){
-    const note = document.createElement('div');
-    note.style.cssText = 'padding:12px 16px;color:var(--muted);font-size:12px;text-align:center;';
-    note.textContent = `แสดง 500 รายการแรกจากทั้งหมด ${rows.length} รายการ — ลองใช้ตัวกรองเพื่อจำกัดผลลัพธ์`;
-    listEl.appendChild(note);
-  }
+    </div>`;
+  }).join('');
+
+  const overNote = rows.length > CAP
+    ? `<div style="padding:12px 16px;color:var(--muted);font-size:12px;text-align:center;">แสดง ${CAP} รายการแรกจากทั้งหมด ${rows.length.toLocaleString()} รายการ — ลองใช้ตัวกรองเพื่อจำกัดผลลัพธ์</div>`
+    : '';
+
+  listEl.innerHTML = cardsHtml + overNote;
 }
+
+// Event delegation: one listener handles clicks for all cards, regardless of how many are rendered
+document.getElementById('list').addEventListener('click', (e) => {
+  const copyBtn = e.target.closest('[data-action="copy-deed"]');
+  if (copyBtn){
+    e.stopPropagation();
+    copyText(copyBtn.dataset.deed, copyBtn);
+    return;
+  }
+  const detailLink = e.target.closest('[data-action="detail"]');
+  if (detailLink){
+    e.stopPropagation();
+    e.preventDefault();
+    openDetail(Number(detailLink.dataset.no));
+    return;
+  }
+  if (e.target.closest('[data-action="stop"]')){
+    e.stopPropagation();
+    return; // let the <a> follow its href normally
+  }
+  const card = e.target.closest('.card');
+  if (card){
+    const no = Number(card.dataset.no);
+    const r = DATA.find(d => d.no === no);
+    if (r && r.lat && r.lng){
+      map.setView([r.lat, r.lng], 16);
+      const m = markers[r.no];
+      if (m) { clusterGroup.zoomToShowLayer(m, () => m.openPopup()); }
+    }
+    highlightCard(no);
+  }
+});
 
 function highlightCard(no){
   document.querySelectorAll('.card').forEach(c => c.classList.remove('active'));
