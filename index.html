@@ -591,6 +591,10 @@ function buildMarkers(rows){
         ${aLabel ? `<div><span class="approx-badge">${aLabel}</span></div>` : ''}
         <div class="popup-meta">${escapeHtml(r.address||'')}</div>
         <div class="popup-meta">${escapeHtml(r.usage_type||'')}</div>
+        <div class="coord-row" style="margin:6px 0;">
+          <span class="coord-text">📍 ${r.lat.toFixed(6)}, ${r.lng.toFixed(6)}</span>
+          <button class="coord-copy" onclick="copyCoord(${r.lat}, ${r.lng}, this)">คัดลอก</button>
+        </div>
         <div style="display:flex;gap:10px;margin-top:6px;flex-wrap:wrap;">
           ${link ? `<a class="popup-link" href="${link}" target="_blank">✈️ มุมมองทางอากาศ</a>` : ''}
           ${svLink ? `<a class="popup-link" href="${svLink}" target="_blank">🚶 Street View</a>` : ''}
