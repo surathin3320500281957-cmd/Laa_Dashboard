@@ -583,6 +583,7 @@ function escapeHtml(s){
 function buildMarkers(rows){
   clusterGroup.clearLayers();
   markers = {};
+  const newMarkers = [];
   rows.forEach(r => {
     if (r.lat && r.lng){
       const letter = gradeLetter(r.grade);
@@ -611,9 +612,12 @@ function buildMarkers(rows){
       `);
       m.on('click', () => highlightCard(r.no));
       markers[r.no] = m;
-      clusterGroup.addLayer(m);
+      newMarkers.push(m);
     }
   });
+  // Bulk-add: builds the spatial index once for the whole batch, instead of
+  // re-clustering on every single addLayer() call (which is O(n) per call).
+  clusterGroup.addLayers(newMarkers);
 }
 
 const deptOptions = [...new Set(DATA.map(r=>r.dept).filter(Boolean))].sort();
