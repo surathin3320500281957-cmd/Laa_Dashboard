@@ -552,6 +552,11 @@ function streetViewLink(r){
   return null;
 }
 
+function googleEarthLink(r){
+  if (r.lat && r.lng) return `https://earth.google.com/web/search/${r.lat},${r.lng}`;
+  return null;
+}
+
 function approxLabel(r){
   if (r.geo_method === 'approx_tambon') return '📍 ตำแหน่งโดยประมาณ (ระดับตำบล)';
   if (r.geo_method === 'approx_district') return '📍 ตำแหน่งโดยประมาณ (ระดับอำเภอ)';
@@ -588,6 +593,7 @@ function buildMarkers(rows){
       const svLink = streetViewLink(r);
       const aLabel = approxLabel(r);
       const lmHint = landsMapsHint(r);
+      const geLink = googleEarthLink(r);
       m.bindPopup(`
         <div class="popup-title">${escapeHtml(r.proj_name || '(ไม่ระบุชื่อโครงการ)')}</div>
         <div class="popup-meta">${escapeHtml(r.dept||'')} ${escapeHtml(r.div||'')} · เกรด ${letter||'-'} · ${escapeHtml(areaText(r))}</div>
@@ -603,6 +609,7 @@ function buildMarkers(rows){
           ${link ? `<a class="popup-link" href="${link}" target="_blank">✈️ มุมมองทางอากาศ</a>` : ''}
           ${svLink ? `<a class="popup-link" href="${svLink}" target="_blank">🚶 Street View</a>` : ''}
           <a class="popup-link" href="https://landsmaps.dol.go.th/" target="_blank">🔍 LandsMaps${lmHint ? ' ('+escapeHtml(lmHint)+')' : ''}</a>
+          ${geLink ? `<a class="popup-link" href="${geLink}" target="_blank">🌍 Google Earth</a>` : ''}
         </div>
         <div style="margin-top:8px;"><span class="opinion-link" onclick="openDetail(${r.no})" style="cursor:pointer;">📋 ดูลำดับความเห็น →</span></div>
       `);
@@ -783,6 +790,7 @@ function renderList(rows){
     const pClass = oCount === 3 ? 'p-done' : oCount === 0 ? 'p-none' : 'p-mid';
     const aLabel = approxLabel(r);
     const lmHint = landsMapsHint(r);
+    const geLink = googleEarthLink(r);
     return `
     <div class="card" data-no="${r.no}">
       <div class="card-top">
@@ -801,6 +809,7 @@ function renderList(rows){
         ${link ? `<a href="${link}" target="_blank" data-action="stop">✈️ มุมมองทางอากาศ</a>` : ''}
         ${svLink ? `<a href="${svLink}" target="_blank" data-action="stop">🚶 Street View</a>` : ''}
         <a class="landsmaps-link" href="https://landsmaps.dol.go.th/" target="_blank" data-action="stop">🔍 ตรวจสอบใน LandsMaps${lmHint ? ' ('+escapeHtml(lmHint)+')' : ''}</a>
+        ${geLink ? `<a class="landsmaps-link" href="${geLink}" target="_blank" data-action="stop">🌍 ตรวจสอบใน Google Earth</a>` : ''}
         <a href="#" data-action="detail" data-no="${r.no}">📋 ดูลำดับความเห็น</a>
       </div>
     </div>`;
@@ -1022,6 +1031,7 @@ function openDetail(no){
   const pClass = oCount === 3 ? 'p-done' : oCount === 0 ? 'p-none' : 'p-mid';
   const aLabel = approxLabel(r);
   const lmHint = landsMapsHint(r);
+  const geLink = googleEarthLink(r);
 
   document.getElementById('detailBody').innerHTML = `
     <p class="detail-title">${escapeHtml(r.proj_name || '(ไม่ระบุชื่อโครงการ)')}</p>
@@ -1040,6 +1050,7 @@ function openDetail(no){
       ${link ? `<a href="${link}" target="_blank">✈️ เปิดมุมมองทางอากาศ</a>` : ''}
       ${svLink ? `<a class="sv" href="${svLink}" target="_blank">🚶 เปิด Street View</a>` : ''}
       <a class="landsmaps-link" href="https://landsmaps.dol.go.th/" target="_blank">🔍 ตรวจสอบใน LandsMaps${lmHint ? ' ('+escapeHtml(lmHint)+')' : ''}</a>
+      ${geLink ? `<a class="landsmaps-link" href="${geLink}" target="_blank">🌍 ตรวจสอบใน Google Earth</a>` : ''}
     </div>
     <p class="tl-title">ลำดับการพิจารณาให้ความเห็น</p>
     ${timelineHtml}
