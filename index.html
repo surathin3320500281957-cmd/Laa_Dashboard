@@ -266,6 +266,16 @@
   .detail-actions a:hover{ opacity:.88; }
 
   .tl-title{ font-size:14.5px; font-weight:800; color:#121a33; margin:0 0 12px; text-transform:uppercase; letter-spacing:.03em; }
+  .rules-ref{ margin:14px 0; border:1px solid var(--border); border-radius:10px; background:#fbfbfd; overflow:hidden; }
+  .rules-ref summary{ cursor:pointer; padding:10px 14px; font-weight:700; font-size:13.5px; color:#2f3a52; list-style:none; }
+  .rules-ref summary::-webkit-details-marker{ display:none; }
+  .rules-ref summary::before{ content:'▸ '; }
+  .rules-ref[open] summary::before{ content:'▾ '; }
+  .rules-ref-body{ padding:0 14px 14px; }
+  .rules-ref-table{ width:100%; border-collapse:collapse; font-size:12px; }
+  .rules-ref-table th, .rules-ref-table td{ border:1px solid var(--border); padding:6px 8px; text-align:left; vertical-align:top; }
+  .rules-ref-table th{ background:#eef0f6; font-weight:700; }
+  .rules-ref-note{ margin:10px 0 0; font-size:11.5px; color:var(--muted); line-height:1.5; }
   .tl-step{ display:flex; gap:12px; }
   .tl-dot-col{ display:flex; flex-direction:column; align-items:center; }
   .tl-dot{
@@ -1052,6 +1062,23 @@ function openDetail(no){
       <a class="landsmaps-link" href="https://landsmaps.dol.go.th/" target="_blank">🔍 ตรวจสอบใน LandsMaps${lmHint ? ' ('+escapeHtml(lmHint)+')' : ''}</a>
       ${geLink ? `<a class="landsmaps-link" href="${geLink}" target="_blank">🌍 ตรวจสอบใน Google Earth</a>` : ''}
     </div>
+    <details class="rules-ref">
+      <summary>📋 เกณฑ์อำนาจอนุมัติ (อ้างอิง)</summary>
+      <div class="rules-ref-body">
+        <table class="rules-ref-table">
+          <thead>
+            <tr><th>ระเบียบ/ข้อบังคับ</th><th>อำนาจผู้ว่าการ</th><th>อำนาจคณะกรรมการ กคช.</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>ฉบับที่ 77 (จัดซื้อที่ดิน)</td><td>ไม่เกิน 10 ล้านบาท อนุมัติเอง / เกิน 10–50 ล้านบาท อนุมัติแล้วรายงานคณะกรรมการทราบ</td><td>มูลค่าเกิน 50 ล้านบาท</td></tr>
+            <tr><td>การขายที่ดินฯ</td><td>ที่ดินประเภท 1 เท่านั้น (ที่ดินเปล่าติดแปลงเดิม ไม่เกิน 100 ตร.วา)</td><td>ที่ดิน/ที่ดินพร้อมสิ่งปลูกสร้าง ประเภท 2 และ 3 ทั้งหมด (ราคาประเมินเกิน 100 ล้านบาทขึ้นไปรวมถึงไม่เกินด้วย)</td></tr>
+            <tr><td>การอนุญาตให้ใช้ทรัพย์สินฯ พ.ศ.2568</td><td>ที่ดินเปล่า: ไม่เกิน 5 ไร่ และไม่เกิน 3 ปี / อาคาร-ที่ดินพร้อมสิ่งปลูกสร้าง: ไม่เกิน 3 ปี</td><td>ที่ดินเปล่า: เกิน 5 ไร่ หรือเกิน 3 ปี / อาคาร-ที่ดินพร้อมสิ่งปลูกสร้าง: เกิน 3 ปี</td></tr>
+            <tr><td>ฉบับที่ 94 (ให้เช่าทรัพย์สิน) พ.ศ.2563</td><td>สิทธิเช่าไม่เกิน 15 ปี และมูลค่าทรัพย์สินตามราคาประเมินไม่เกิน 200 ล้านบาท</td><td>สิทธิเช่าเกิน 15 ปี หรือมูลค่าทรัพย์สินเกิน 200 ล้านบาท</td></tr>
+          </tbody>
+        </table>
+        <p class="rules-ref-note">ตารางนี้เป็นข้อมูลอ้างอิงทั่วไปที่สกัดมาจากไฟล์ระเบียบ ไม่ใช่คำวินิจฉัยหรือคำแนะนำ และไม่ได้ผูกกับแปลงนี้โดยเฉพาะ ไม่มีการคำนวณหรือจับคู่กับแปลงใดๆ ทั้งสิ้น — การพิจารณาว่าแปลงนี้เข้าเกณฑ์ใดและผู้มีอำนาจอนุมัติคือใคร ขึ้นอยู่กับดุลยพินิจของผู้รับผิดชอบ โดยตรวจสอบกับต้นฉบับระเบียบและราคาประเมิน/รายละเอียดจริงจาก LandsMaps ประกอบก่อนใช้ปฏิบัติงานจริงเสมอ</p>
+      </div>
+    </details>
     <p class="tl-title">ลำดับการพิจารณาให้ความเห็น</p>
     ${timelineHtml}
   `;
