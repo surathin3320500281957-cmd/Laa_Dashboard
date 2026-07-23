@@ -533,19 +533,19 @@ map.addLayer(clusterGroup);
 
 function makeIcon(letter, isApprox){
   const color = gradeColor[letter] || '#98a2ba';
-  if (isApprox){
-    return L.divIcon({
-      className: '',
-      html: `<div style="width:16px;height:16px;border-radius:50%;border:2.5px dashed ${color};background:#fff;opacity:.85;"></div>`,
-      iconSize: [16,16],
-      iconAnchor: [8,8]
-    });
-  }
+  const dashAttr = isApprox ? ' stroke-dasharray="3,2"' : '';
+  const opacity = isApprox ? 0.85 : 1;
+  const html = `
+    <svg width="26" height="36" viewBox="0 0 26 36" xmlns="http://www.w3.org/2000/svg" style="opacity:${opacity};display:block;filter:drop-shadow(0 2px 3px rgba(20,30,60,.35));">
+      <path d="M13 0C5.82 0 0 5.82 0 13c0 9.75 13 23 13 23s13-13.25 13-23C26 5.82 20.18 0 13 0z" fill="${color}" stroke="#fff" stroke-width="2"${dashAttr}/>
+      <circle cx="13" cy="13" r="5.2" fill="#fff"/>
+    </svg>`;
   return L.divIcon({
     className: '',
-    html: `<div style="background:${color};width:16px;height:16px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 5px rgba(20,30,60,.4);"></div>`,
-    iconSize: [16,16],
-    iconAnchor: [8,8]
+    html,
+    iconSize: [26,36],
+    iconAnchor: [13,36],
+    popupAnchor: [0,-32]
   });
 }
 
@@ -1061,6 +1061,7 @@ function openDetail(no){
       ${svLink ? `<a class="sv" href="${svLink}" target="_blank">🚶 เปิด Street View</a>` : ''}
       <a class="landsmaps-link" href="https://landsmaps.dol.go.th/" target="_blank">🔍 ตรวจสอบใน LandsMaps${lmHint ? ' ('+escapeHtml(lmHint)+')' : ''}</a>
       ${geLink ? `<a class="landsmaps-link" href="${geLink}" target="_blank">🌍 ตรวจสอบใน Google Earth</a>` : ''}
+      <a href="#" class="landsmaps-link pdf-export-link" data-action="stop" onclick="exportDetailPdf(${r.no}); return false;">📄 Export PDF</a>
     </div>
     <details class="rules-ref">
       <summary>📋 เกณฑ์อำนาจอนุมัติ (อ้างอิง)</summary>
@@ -1117,6 +1118,82 @@ function openDetail(no){
     document.getElementById('detailOverlay').classList.add('open');
     document.getElementById('detailPanel').classList.add('open');
   }
+}
+
+function exportDetailPdf(no){
+  const r = DATA.find(d => d.no === no);
+  if (!r) return;
+
+  const letter = gradeLetter(r.grade);
+  const oCount = [r.opinion_pk, r.opinion_sw, r.opinion_td].filter(Boolean).length;
+  const opinionRows = [
+    { label: 'บันทึกเบื้องต้น (หมายเหตุ)', text: r.notes },
+    { label: 'ความเห็นฝ่าย พก.1,2,3', text: r.opinion_pk },
+    { label: 'ความเห็นฝ่าย สว.', text: r.opinion_sw },
+    { label: 'ความเห็นฝ่าย ทด.', text: r.opinion_td },
+  ].map(s => `<tr><td>${escapeHtml(s.label)}</td><td>${s.text ? escapeHtml(s.text) : '<span class="pending">ยังไม่มีความเห็น</span>'}</td></tr>`).join('');
+
+  const aLabel = approxLabel(r);
+  const coordText = (r.lat && r.lng) ? `${r.lat.toFixed(6)}, ${r.lng.toFixed(6)}${aLabel ? ' — ' + aLabel : ''}` : 'ไม่มีพิกัด';
+
+  const win = window.open('', '_blank');
+  win.document.write(`
+    <!DOCTYPE html><html lang="th"><head><meta charset="UTF-8">
+    <title>${escapeHtml(r.proj_name || 'รายละเอียดแปลง')}</title>
+    <style>
+      body{ font-family:"Sarabun","Segoe UI",Tahoma,sans-serif; padding:24px; color:#111; }
+      h1{ font-size:19px; margin-bottom:2px; }
+      p.meta{ font-size:12px; color:#555; margin-top:0; margin-bottom:18px; }
+      .badges span{ display:inline-block; background:#f0f2f7; border:1px solid #ccd; border-radius:20px; padding:4px 12px; font-size:12px; margin:0 6px 6px 0; }
+      table{ width:100%; border-collapse:collapse; font-size:12px; margin-bottom:18px; }
+      th, td{ border:1px solid #ccc; padding:6px 8px; text-align:left; vertical-align:top; }
+      th{ background:#f0f0f0; }
+      h2{ font-size:14px; margin:22px 0 8px; text-transform:uppercase; letter-spacing:.03em; }
+      .pending{ color:#999; font-style:italic; }
+      .note{ font-size:11px; color:#666; margin-top:6px; line-height:1.5; }
+      @media print{ button{ display:none; } }
+    </style></head><body>
+    <h1>${escapeHtml(r.proj_name || '(ไม่ระบุชื่อโครงการ)')}</h1>
+    <p class="meta">${escapeHtml(r.dept||'')} ${escapeHtml(r.div||'')} · รหัสโครงการ ${escapeHtml(r.proj_code||'-')} · พิมพ์เมื่อ ${new Date().toLocaleString('th-TH')}</p>
+    <button onclick="window.print()">พิมพ์ / บันทึกเป็น PDF</button>
+    <div class="badges" style="margin-top:14px;">
+      <span>เกรด ${letter || '-'}</span>
+      <span>เนื้อที่ ${escapeHtml(areaText(r))}</span>
+      <span>โฉนดเลขที่ ${escapeHtml(r.deed_no ?? '-')}</span>
+      <span>ผ่านความเห็น ${oCount}/3</span>
+    </div>
+
+    <h2>ข้อมูลแปลง</h2>
+    <table>
+      <tr><th style="width:180px;">ที่อยู่</th><td>${escapeHtml(r.address || '-')}</td></tr>
+      <tr><th>การพิจารณาใช้ประโยชน์</th><td>${escapeHtml(r.usage_status || '-')}</td></tr>
+      <tr><th>สถานะ</th><td>${escapeHtml(r.status || '-')}</td></tr>
+      <tr><th>ประเภทขนาดพื้นที่</th><td>${escapeHtml(r.area_type || '-')}</td></tr>
+      <tr><th>ประเภทที่ดิน</th><td>${escapeHtml(r.land_type || '-')}</td></tr>
+      <tr><th>พิกัด</th><td>${escapeHtml(coordText)}</td></tr>
+    </table>
+
+    <h2>ลำดับการพิจารณาให้ความเห็น</h2>
+    <table>
+      <thead><tr><th style="width:200px;">ขั้นตอน</th><th>รายละเอียด/สถานะ</th></tr></thead>
+      <tbody>${opinionRows}</tbody>
+    </table>
+
+    <h2>เกณฑ์อำนาจอนุมัติ (อ้างอิง)</h2>
+    <table>
+      <thead><tr><th>ระเบียบ/ข้อบังคับ</th><th>อำนาจผู้ว่าการ</th><th>อำนาจคณะกรรมการ กคช.</th></tr></thead>
+      <tbody>
+        <tr><td>ฉบับที่ 77 (จัดซื้อที่ดิน)</td><td>ไม่เกิน 10 ล้านบาท อนุมัติเอง / เกิน 10–50 ล้านบาท อนุมัติแล้วรายงานคณะกรรมการทราบ</td><td>มูลค่าเกิน 50 ล้านบาท</td></tr>
+        <tr><td>การขายที่ดินฯ</td><td>ที่ดินประเภท 1 เท่านั้น (ที่ดินเปล่าติดแปลงเดิม ไม่เกิน 100 ตร.วา)</td><td>ที่ดิน/ที่ดินพร้อมสิ่งปลูกสร้าง ประเภท 2 และ 3 ทั้งหมด</td></tr>
+        <tr><td>การอนุญาตให้ใช้ทรัพย์สินฯ พ.ศ.2568</td><td>ที่ดินเปล่า: ไม่เกิน 5 ไร่ และไม่เกิน 3 ปี / อาคาร-ที่ดินพร้อมสิ่งปลูกสร้าง: ไม่เกิน 3 ปี</td><td>ที่ดินเปล่า: เกิน 5 ไร่ หรือเกิน 3 ปี / อาคาร-ที่ดินพร้อมสิ่งปลูกสร้าง: เกิน 3 ปี</td></tr>
+        <tr><td>ฉบับที่ 94 (ให้เช่าทรัพย์สิน) พ.ศ.2563</td><td>สิทธิเช่าไม่เกิน 15 ปี และมูลค่าไม่เกิน 200 ล้านบาท</td><td>สิทธิเช่าเกิน 15 ปี หรือมูลค่าเกิน 200 ล้านบาท</td></tr>
+      </tbody>
+    </table>
+    <p class="note">ตารางนี้เป็นข้อมูลอ้างอิงทั่วไป ไม่ใช่คำวินิจฉัยหรือคำแนะนำ และไม่ได้ผูกกับแปลงนี้โดยเฉพาะ การพิจารณาว่าแปลงนี้เข้าเกณฑ์ใดขึ้นอยู่กับดุลยพินิจของผู้รับผิดชอบ โดยตรวจสอบกับต้นฉบับระเบียบและราคาประเมิน/รายละเอียดจริงจาก LandsMaps ประกอบก่อนใช้ปฏิบัติงานจริงเสมอ</p>
+    </body></html>
+  `);
+  win.document.close();
+  setTimeout(() => win.print(), 400);
 }
 
 function ensureDetailMap(){
