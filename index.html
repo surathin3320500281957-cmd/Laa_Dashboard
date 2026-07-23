@@ -59,6 +59,12 @@
   .btn.ghost{ background:#fff; border:1px solid var(--border); color:var(--muted); box-shadow:none; }
   .btn.ghost:hover{ color:var(--text); border-color:var(--accent); transform:none; box-shadow:none; }
   .btn.pdf{ background:var(--D); } .btn.pdf:hover{ background:#c62a22; }
+  .pdf-export-link{
+    font-size:11.5px; font-weight:700; text-decoration:none;
+    border:1px solid var(--D); padding:3px 10px; border-radius:20px;
+    background:var(--D); color:#fff;
+  }
+  .pdf-export-link:hover{ background:#c62a22; border-color:#c62a22; }
   .btn.xls{ background:var(--A); } .btn.xls:hover{ background:#0d9c5c; }
 
   .activeFilters{ display:none; flex-wrap:wrap; gap:7px; margin-bottom:12px; }
@@ -1061,7 +1067,7 @@ function openDetail(no){
       ${svLink ? `<a class="sv" href="${svLink}" target="_blank">🚶 เปิด Street View</a>` : ''}
       <a class="landsmaps-link" href="https://landsmaps.dol.go.th/" target="_blank">🔍 ตรวจสอบใน LandsMaps${lmHint ? ' ('+escapeHtml(lmHint)+')' : ''}</a>
       ${geLink ? `<a class="landsmaps-link" href="${geLink}" target="_blank">🌍 ตรวจสอบใน Google Earth</a>` : ''}
-      <a href="#" class="landsmaps-link pdf-export-link" data-action="stop" onclick="exportDetailPdf(${r.no}); return false;">📄 Export PDF</a>
+      <a href="#" class="pdf-export-link" data-action="stop" onclick="exportDetailPdf(${r.no}); return false;">📄 Export PDF</a>
     </div>
     <details class="rules-ref">
       <summary>📋 เกณฑ์อำนาจอนุมัติ (อ้างอิง)</summary>
