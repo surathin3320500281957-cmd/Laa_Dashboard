@@ -912,6 +912,7 @@ document.getElementById('exportPdfBtn').addEventListener('click', () => {
       <td>${escapeHtml(r.branch)}</td>
       <td>${escapeHtml(r.proj_code)}</td>
       <td>${escapeHtml(r.proj_name)}</td>
+      <td>${r.deed_no ?? ''}</td>
       <td>${escapeHtml(gradeLetter(r.grade) || '-')}</td>
       <td>${escapeHtml(r.usage_status)}</td>
       <td>${escapeHtml(r.status)}</td>
@@ -937,7 +938,7 @@ document.getElementById('exportPdfBtn').addEventListener('click', () => {
     <button onclick="window.print()">พิมพ์ / บันทึกเป็น PDF</button>
     <table>
       <thead><tr>
-        <th>ลำดับ</th><th>ฝ่าย</th><th>กอง</th><th>สคล./สคจ.</th><th>รหัสโครงการ</th><th>ชื่อโครงการ</th>
+        <th>ลำดับ</th><th>ฝ่าย</th><th>กอง</th><th>สคล./สคจ.</th><th>รหัสโครงการ</th><th>ชื่อโครงการ</th><th>เลขที่โฉนด</th>
         <th>เกรด</th><th>การพิจารณาใช้ประโยชน์</th><th>สถานะ</th><th>ประเภทขนาดพื้นที่</th><th>ประเภทที่ดิน</th><th>เนื้อที่</th><th>ที่อยู่</th>
       </tr></thead>
       <tbody>${tableRows}</tbody>
