@@ -421,7 +421,7 @@ let detailMap = null;
 let markers = {};
 let currentRows = [];
 let detailMarker = null;
-let miniIsSatellite = false;
+let miniIsSatellite = true;
 let miniBaseLayer = null;
 
 const stageDefs = [
@@ -514,14 +514,14 @@ function satelliteTileLayer(){
 }
 
 const map = L.map('map', { zoomControl: true, preferCanvas: true, zoomAnimation: false, markerZoomAnimation: false }).setView([13.75, 101.0], 6);
-let mainIsSatellite = false;
-let mainBaseLayer = streetTileLayer().addTo(map);
+let mainIsSatellite = true;
+let mainBaseLayer = satelliteTileLayer().addTo(map);
 
 const MapToggleControl = L.Control.extend({
   options: { position: 'topright' },
   onAdd: function(){
     const btn = L.DomUtil.create('div', 'map-toggle-btn');
-    btn.innerHTML = '🛰️ ภาพถ่ายดาวเทียม';
+    btn.innerHTML = '🗺️ แผนที่ถนน';
     L.DomEvent.disableClickPropagation(btn);
     btn.onclick = function(){
       mainIsSatellite = !mainIsSatellite;
@@ -1207,13 +1207,14 @@ function ensureDetailMap(){
   if (detailMap) return; // already created, reuse it
   const el = document.getElementById('detailMiniMap');
   detailMap = L.map(el, { zoomControl:false, attributionControl:false, dragging:false, scrollWheelZoom:false, doubleClickZoom:false, zoomAnimation:false, markerZoomAnimation:false, preferCanvas:true }).setView([13.75, 101.0], 16);
-  miniBaseLayer = streetTileLayer().addTo(detailMap);
+  miniIsSatellite = true;
+  miniBaseLayer = satelliteTileLayer().addTo(detailMap);
 
   const MiniToggleControl = L.Control.extend({
     options: { position: 'topright' },
     onAdd: function(){
       const btn = L.DomUtil.create('div', 'map-toggle-btn mini');
-      btn.innerHTML = '🛰️ ดาวเทียม';
+      btn.innerHTML = '🗺️ ถนน';
       L.DomEvent.disableClickPropagation(btn);
       btn.onclick = function(){
         miniIsSatellite = !miniIsSatellite;
