@@ -1404,7 +1404,7 @@ function buildLisMarkers(rows){
       <div style="display:flex;gap:10px;margin-top:6px;flex-wrap:wrap;">
         <a class="popup-link" href="${lisAerialLink(r.lat, r.lng)}" target="_blank">✈️ มุมมองทางอากาศ</a>
         <a class="popup-link" href="${lisEarthLink(r.lat, r.lng)}" target="_blank">🌍 Google Earth</a>
-        <a class="popup-link" href="https://landsmaps.dol.go.th/" target="_blank">🔍 LandsMaps${r.province ? ' (' + escapeHtml(r.province) + ')' : ''}</a>
+        <a class="popup-link" href="https://landsmaps.dol.go.th/" target="_blank">🔍 LandsMaps${escapeHtml(lisLandsMapsHint(r))}</a>
       </div>
     `);
     lisMarkerGroup.addLayer(m);
@@ -1416,6 +1416,13 @@ function buildLisMarkers(rows){
   } else if (pts.length > 1){
     lisMap.fitBounds(L.latLngBounds(pts), { padding: [40,40], maxZoom: 15 });
   }
+}
+
+function lisLandsMapsHint(r){
+  const parts = [];
+  if (r.province) parts.push('จังหวัด ' + r.province);
+  if (r.district) parts.push('อำเภอ/เขต ' + r.district);
+  return parts.length ? ' (' + parts.join(' ') + ')' : '';
 }
 
 function showLisMarkerPopup(idx){
@@ -1526,7 +1533,7 @@ function renderLisList(query){
         ${hasCoord ? `<button class="landsmaps-link" data-action="stop" onclick="copyCoord(${r.lat}, ${r.lng}, this)">📋 คัดลอกพิกัด</button>` : ''}
         ${hasCoord ? `<a href="${lisAerialLink(r.lat, r.lng)}" target="_blank" data-action="stop">✈️ มุมมองทางอากาศ</a>` : ''}
         ${hasCoord ? `<a class="landsmaps-link" href="${lisEarthLink(r.lat, r.lng)}" target="_blank" data-action="stop">🌍 Google Earth</a>` : ''}
-        <a class="landsmaps-link" href="https://landsmaps.dol.go.th/" target="_blank" data-action="stop">🔍 LandsMaps${r.province ? ' (' + escapeHtml(r.province) + ')' : ''}</a>
+        <a class="landsmaps-link" href="https://landsmaps.dol.go.th/" target="_blank" data-action="stop">🔍 LandsMaps${escapeHtml(lisLandsMapsHint(r))}</a>
       </div>
       ${!hasCoord ? `<div class="lis-no-coord">⚠️ ไม่มีพิกัด X,Y ในฐานนี้ — คลิกรายการนี้เพื่อเปิด LandsMaps ค้นหาต่อด้วยเลขที่โฉนดนี้</div>` : ''}
     </div>`;
