@@ -48,6 +48,10 @@
   .kcard.k-D{ background:#fff; border-left:4px solid var(--D); } .kcard.k-D b{ color:var(--D); }
 
   .filterPanel{ background:var(--panel); border-bottom:1px solid var(--border); padding:14px 20px; max-height:42vh; overflow-y:auto; overflow-x:visible; }
+  .tabBar{ display:flex; gap:8px; background:var(--panel); border-bottom:1px solid var(--border); padding:10px 20px; }
+  .tabBtn{ border:1px solid var(--border); background:#fff; color:var(--muted); font-weight:700; font-size:13px; padding:8px 16px; border-radius:20px; cursor:pointer; }
+  .tabBtn.active{ background:var(--accent); border-color:var(--accent); color:#fff; }
+  .lis-no-coord{ background:#fff7e6; border:1px solid #ffd98a; color:#9a6b00; border-radius:8px; padding:6px 10px; font-size:12px; margin-top:6px; display:inline-block; }
   .filterTop{ display:flex; gap:8px; align-items:center; margin-bottom:14px; flex-wrap:wrap; position:sticky; top:0; background:var(--panel); z-index:6; padding-bottom:6px; }
   .filterTop input[type=text]{
     flex:1; min-width:200px; padding:9px 14px; border-radius:10px; border:1px solid var(--border);
@@ -173,6 +177,27 @@
   }
   #resultCount{ padding:9px 16px; font-size:14px; color:var(--muted); border-bottom:1px solid var(--border); font-weight:600; }
   #list{ overflow-y:auto; flex:1; }
+  #lisMap{ flex:1.3; min-width:0; }
+  #lisListPane{
+    flex:1; min-width:340px; max-width:520px; display:flex; flex-direction:column;
+    border-left:1px solid var(--border); background:var(--panel);
+  }
+  #lisResultCount{ padding:9px 16px; font-size:14px; color:var(--muted); border-bottom:1px solid var(--border); font-weight:600; }
+  #lisResults{ overflow-y:auto; flex:1; }
+  #lisResults .lis-empty{ padding:30px 16px; text-align:center; color:var(--muted); font-size:13.5px; }
+
+  /* scrollbars: list panes ONLY, never the map containers (Leaflet handles its own
+     pan/zoom internally — CSS overflow on the map div breaks touch dragging) */
+  #list, #lisResults{
+    scrollbar-width: thin;
+    scrollbar-color: #b7bccb var(--panel2);
+  }
+  #list::-webkit-scrollbar, #lisResults::-webkit-scrollbar{ width: 10px; }
+  #list::-webkit-scrollbar-track, #lisResults::-webkit-scrollbar-track{ background: var(--panel2); }
+  #list::-webkit-scrollbar-thumb, #lisResults::-webkit-scrollbar-thumb{
+    background-color: #b7bccb; border-radius: 8px; border: 2px solid var(--panel2);
+  }
+  #list::-webkit-scrollbar-thumb:hover, #lisResults::-webkit-scrollbar-thumb:hover{ background-color: #9199b0; }
   .card{
     padding:12px 16px; border-bottom:1px solid var(--border); cursor:pointer;
     transition:background .15s;
@@ -345,6 +370,12 @@
   <div class="kpi" id="kpiBar"></div>
 </header>
 
+<div class="tabBar">
+  <button class="tabBtn active" id="tabBtnDashboard" onclick="switchTab('dashboard')">📊 ที่ดิน 5 ไร่</button>
+  <button class="tabBtn" id="tabBtnLis" onclick="switchTab('lis')">🔎 ที่ดิน LIS</button>
+</div>
+
+<div id="dashboardView">
 <div class="filterPanel">
   <div class="filterTop">
     <input type="text" id="searchBox" placeholder="ค้นหาชื่อโครงการ / ที่อยู่ / รหัสโครงการ / เลขที่โฉนด..." />
@@ -400,6 +431,24 @@
     <div id="list"></div>
   </div>
 </main>
+</div>
+
+<div id="lisView" style="display:none;">
+  <div class="filterPanel">
+    <div class="kpi" id="lisKpiBar"></div>
+    <div class="filterTop">
+      <input type="text" id="lisSearchBox" placeholder="พิมพ์เลขที่โฉนด / เลขที่ดิน / ตำบล / อำเภอ / จังหวัด..." disabled />
+      <button class="btn ghost" id="lisResetBtn">ล้างการค้นหา</button>
+    </div>
+  </div>
+  <main>
+    <div id="lisMap"></div>
+    <div id="lisListPane">
+      <div id="lisResultCount"></div>
+      <div id="lisResults"><div class="lis-empty" id="lisLoadingMsg">⏳ กำลังโหลดฐานข้อมูลกรมที่ดิน...</div></div>
+    </div>
+  </main>
+</div>
 
 <div class="detail-overlay" id="detailOverlay"></div>
 <div class="detail-panel" id="detailPanel">
@@ -1267,6 +1316,230 @@ function closeDetail(){
 }
 document.getElementById('detailClose').addEventListener('click', closeDetail);
 document.getElementById('detailOverlay').addEventListener('click', closeDetail);
+
+// ---------- Tab switching (Dashboard <-> LIS deed search) ----------
+// LIS_DATA is intentionally NOT embedded in this file — it's fetched lazily
+// from lis_data.json only when the user opens the LIS tab for the first time,
+// so the initial page load stays light regardless of whether this tab is ever used.
+let LIS_DATA = null;
+let lisDataLoadingPromise = null;
+let lisMap = null, lisMarkerGroup = null, lisBaseLayer = null, lisIsSatellite = true;
+
+function ensureLisDataLoaded(){
+  if (LIS_DATA) return Promise.resolve(LIS_DATA);
+  if (lisDataLoadingPromise) return lisDataLoadingPromise;
+  lisDataLoadingPromise = fetch('lis_data.json')
+    .then(r => {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    })
+    .then(data => {
+      LIS_DATA = data;
+      document.getElementById('lisSearchBox').disabled = false;
+      document.getElementById('lisSearchBox').placeholder = 'พิมพ์เลขที่โฉนด / เลขที่ดิน / ตำบล / อำเภอ / จังหวัด...';
+      document.getElementById('lisResults').innerHTML =
+        `<div class="lis-empty">พิมพ์เลขที่โฉนด / เลขที่ดิน / ตำบล / อำเภอ / จังหวัด เพื่อค้นหาในฐานข้อมูลกรมที่ดิน (${LIS_DATA.length.toLocaleString()} รายการ)</div>`;
+      renderLisKpi([], false);
+      return LIS_DATA;
+    })
+    .catch(err => {
+      document.getElementById('lisResults').innerHTML =
+        `<div class="lis-empty">⚠️ โหลดฐานข้อมูลกรมที่ดินไม่สำเร็จ (${escapeHtml(err.message)}) — ตรวจสอบว่าไฟล์ lis_data.json อยู่ในตำแหน่งเดียวกับ index.html บนเว็บที่ deploy แล้วลองรีเฟรชอีกครั้ง</div>`;
+      lisDataLoadingPromise = null; // allow retry on next tab switch
+      throw err;
+    });
+  return lisDataLoadingPromise;
+}
+
+function ensureLisMap(){
+  if (lisMap) return;
+  lisMap = L.map('lisMap', { zoomControl: true, preferCanvas: true, zoomAnimation: false, markerZoomAnimation: false }).setView([13.75, 101.0], 6);
+  lisBaseLayer = satelliteTileLayer().addTo(lisMap);
+
+  const LisToggleControl = L.Control.extend({
+    options: { position: 'topright' },
+    onAdd: function(){
+      const btn = L.DomUtil.create('div', 'map-toggle-btn');
+      btn.innerHTML = '🗺️ แผนที่ถนน';
+      L.DomEvent.disableClickPropagation(btn);
+      btn.onclick = function(){
+        lisIsSatellite = !lisIsSatellite;
+        lisMap.removeLayer(lisBaseLayer);
+        lisBaseLayer = (lisIsSatellite ? satelliteTileLayer() : streetTileLayer()).addTo(lisMap);
+        btn.innerHTML = lisIsSatellite ? '🗺️ แผนที่ถนน' : '🛰️ ภาพถ่ายดาวเทียม';
+      };
+      return btn;
+    }
+  });
+  lisMap.addControl(new LisToggleControl());
+
+  lisMarkerGroup = L.markerClusterGroup({ maxClusterRadius: 45 });
+  lisMap.addLayer(lisMarkerGroup);
+  // NOTE: #lisMap has no CSS overflow set — Leaflet manages its own pan/zoom.
+  // Do not add overflow:auto/scroll here; it breaks touch dragging (see plan doc).
+}
+
+function buildLisMarkers(rows){
+  if (!lisMarkerGroup) return;
+  lisMarkerGroup.clearLayers();
+  const pts = [];
+  rows.forEach(r => {
+    if (!r.lat || !r.lng) return;
+    const m = L.marker([r.lat, r.lng], { icon: makeIcon(null, false) });
+    const locationText = [r.subdistrict, r.district, r.province].filter(Boolean).join(' / ') || '-';
+    m.bindPopup(`
+      <div class="popup-title">โฉนดเลขที่ ${escapeHtml(r.deedno || '-')}${r.landno ? ' · เลขที่ดิน ' + escapeHtml(r.landno) : ''}</div>
+      <div class="popup-meta">${escapeHtml(locationText)}</div>
+      <div class="coord-row" style="margin:6px 0;">
+        <span class="coord-text">📍 ${r.lat.toFixed(6)}, ${r.lng.toFixed(6)}</span>
+        <button class="coord-copy" onclick="copyCoord(${r.lat}, ${r.lng}, this)">คัดลอก</button>
+      </div>
+      <div style="display:flex;gap:10px;margin-top:6px;flex-wrap:wrap;">
+        <a class="popup-link" href="${lisAerialLink(r.lat, r.lng)}" target="_blank">✈️ มุมมองทางอากาศ</a>
+        <a class="popup-link" href="${lisEarthLink(r.lat, r.lng)}" target="_blank">🌍 Google Earth</a>
+      </div>
+    `);
+    lisMarkerGroup.addLayer(m);
+    pts.push([r.lat, r.lng]);
+  });
+  if (pts.length === 1){
+    lisMap.setView(pts[0], 16);
+  } else if (pts.length > 1){
+    lisMap.fitBounds(L.latLngBounds(pts), { padding: [40,40], maxZoom: 15 });
+  }
+}
+
+function switchTab(name){
+  const isDash = name === 'dashboard';
+  document.getElementById('dashboardView').style.display = isDash ? '' : 'none';
+  document.getElementById('lisView').style.display = isDash ? 'none' : '';
+  document.getElementById('tabBtnDashboard').classList.toggle('active', isDash);
+  document.getElementById('tabBtnLis').classList.toggle('active', !isDash);
+  if (isDash){
+    setTimeout(() => map.invalidateSize(), 0);
+    return;
+  }
+  ensureLisMap();
+  setTimeout(() => lisMap.invalidateSize(), 0);
+  ensureLisDataLoaded().then(() => {
+    renderLisList(document.getElementById('lisSearchBox').value.trim());
+  }).catch(() => { /* error already shown in ensureLisDataLoaded */ });
+}
+
+function lisEarthLink(lat, lng){
+  return `https://earth.google.com/web/search/${lat},${lng}`;
+}
+function lisAerialLink(lat, lng){
+  return `https://www.google.com/maps/place/${lat},${lng}/@${lat},${lng},17z/data=!3m1!1e3`;
+}
+
+function renderLisKpi(matches, hasQuery){
+  const totalDb = LIS_DATA ? LIS_DATA.length : 0;
+  if (!hasQuery){
+    document.getElementById('lisKpiBar').innerHTML = `
+      <div class="kcard"><b>${totalDb.toLocaleString()}</b><span>รายการทั้งหมดในฐาน</span></div>
+    `;
+    return;
+  }
+  const withCoord = matches.filter(r => r.lat && r.lng).length;
+  const withoutCoord = matches.length - withCoord;
+  document.getElementById('lisKpiBar').innerHTML = `
+    <div class="kcard"><b>${totalDb.toLocaleString()}</b><span>รายการทั้งหมดในฐาน</span></div>
+    <div class="kcard k-geo"><b>${matches.length.toLocaleString()}</b><span>ผลลัพธ์ที่พบ</span></div>
+    <div class="kcard k-geo"><b>${withCoord.toLocaleString()}</b><span>มีพิกัด</span></div>
+    <div class="kcard k-approx"><b>${withoutCoord.toLocaleString()}</b><span>ไม่มีพิกัด</span></div>
+  `;
+}
+
+function renderLisList(query){
+  if (!LIS_DATA) return; // data not loaded yet; ensureLisDataLoaded() will call this again once ready
+  const box = document.getElementById('lisResults');
+  const countEl = document.getElementById('lisResultCount');
+
+  if (!query){
+    countEl.textContent = '';
+    box.innerHTML = `<div class="lis-empty">พิมพ์เลขที่โฉนด / เลขที่ดิน / ตำบล / อำเภอ / จังหวัด เพื่อค้นหาในฐานข้อมูลกรมที่ดิน (${LIS_DATA.length.toLocaleString()} รายการ)</div>`;
+    renderLisKpi([], false);
+    buildLisMarkers([]);
+    return;
+  }
+
+  const q = query.trim();
+  const qLower = q.toLowerCase();
+  const isNumericQuery = /^\d+$/.test(q);
+
+  const matches = LIS_DATA.filter(r => {
+    if (isNumericQuery){
+      return (r.deedno && r.deedno.includes(q)) || (r.landno && r.landno.includes(q));
+    }
+    return [r.deedno, r.landno, r.subdistrict, r.district, r.province].some(
+      v => v && String(v).toLowerCase().includes(qLower)
+    );
+  });
+
+  countEl.textContent = `พบ ${matches.length.toLocaleString()} รายการ`;
+  renderLisKpi(matches, true);
+
+  if (matches.length === 0){
+    box.innerHTML = `<div class="lis-empty">ไม่พบ "${escapeHtml(q)}" ในฐานข้อมูล V_LIS_TO_EIS — ลองตรวจสอบเลขที่โฉนดอีกครั้ง หรือค้นหาต่อใน LandsMaps โดยตรง<br><br>
+      <a class="landsmaps-link" href="https://landsmaps.dol.go.th/" target="_blank">🔍 เปิด LandsMaps เพื่อค้นหาต่อ</a></div>`;
+    buildLisMarkers([]);
+    return;
+  }
+
+  const CAP = 150;
+  const shown = matches.slice(0, CAP);
+  buildLisMarkers(shown);
+
+  const cardsHtml = shown.map((r, idx) => {
+    const hasCoord = r.lat && r.lng;
+    const primaryLink = hasCoord ? lisEarthLink(r.lat, r.lng) : 'https://landsmaps.dol.go.th/';
+    const locationText = [r.subdistrict, r.district, r.province].filter(Boolean).join(' / ') || '-';
+    return `
+    <div class="card" data-lis-idx="${idx}" data-primary-link="${escapeHtml(primaryLink)}">
+      <div class="card-top">
+        <div class="card-title">โฉนดเลขที่ ${escapeHtml(r.deedno || '-')}${r.landno ? ' · เลขที่ดิน ' + escapeHtml(r.landno) : ''}</div>
+      </div>
+      <div class="card-meta">${escapeHtml(r.func || '')}</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;">
+        <span class="deed-badge">📐 ตามโฉนด ${r.deed_area != null ? escapeHtml(String(r.deed_area)) : '-'}</span>
+        <span class="deed-badge">📐 ใช้จริง ${r.net_area2 != null ? escapeHtml(String(r.net_area2)) : (r.net_area != null ? escapeHtml(String(r.net_area)) : '-')}</span>
+      </div>
+      <div class="card-addr">${escapeHtml(locationText)}</div>
+      <div class="card-links">
+        ${hasCoord ? `<span class="no-geo-tag">📍 ${r.lat.toFixed(6)}, ${r.lng.toFixed(6)}</span>` : `<span class="no-geo-tag">⚠️ ไม่มีพิกัดในฐานนี้</span>`}
+        ${hasCoord ? `<button class="landsmaps-link" data-action="stop" onclick="copyCoord(${r.lat}, ${r.lng}, this)">📋 คัดลอกพิกัด</button>` : ''}
+        ${hasCoord ? `<a href="${lisAerialLink(r.lat, r.lng)}" target="_blank" data-action="stop">✈️ มุมมองทางอากาศ</a>` : ''}
+        ${hasCoord ? `<a class="landsmaps-link" href="${lisEarthLink(r.lat, r.lng)}" target="_blank" data-action="stop">🌍 Google Earth</a>` : ''}
+        <a class="landsmaps-link" href="https://landsmaps.dol.go.th/" target="_blank" data-action="stop">🔍 LandsMaps${r.province ? ' (' + escapeHtml(r.province) + ')' : ''}</a>
+      </div>
+      ${!hasCoord ? `<div class="lis-no-coord">⚠️ ไม่มีพิกัด X,Y ในฐานนี้ — คลิกรายการนี้เพื่อเปิด LandsMaps ค้นหาต่อด้วยเลขที่โฉนดนี้</div>` : ''}
+    </div>`;
+  }).join('');
+
+  const overNote = matches.length > CAP
+    ? `<div style="padding:12px 16px;color:var(--muted);font-size:12px;text-align:center;">แสดง ${CAP} รายการแรกจากทั้งหมด ${matches.length.toLocaleString()} รายการ — ลองพิมพ์ให้เจาะจงขึ้น</div>`
+    : '';
+
+  box.innerHTML = cardsHtml + overNote;
+}
+
+// NOTE: this handler deliberately does NOT call scrollIntoView anywhere — a past
+// version forced the list to re-center on every click, which fought with the
+// user's own manual scrolling. Clicking a card only opens its primary link.
+document.getElementById('lisResults').addEventListener('click', (e) => {
+  if (e.target.closest('[data-action="stop"]')) return;
+  const card = e.target.closest('.card[data-primary-link]');
+  if (card) window.open(card.dataset.primaryLink, '_blank');
+});
+
+document.getElementById('lisSearchBox').addEventListener('input', debounce(() => {
+  renderLisList(document.getElementById('lisSearchBox').value.trim());
+}, 200));
+document.getElementById('lisResetBtn').addEventListener('click', () => {
+  document.getElementById('lisSearchBox').value = '';
+  renderLisList('');
+});
 
 applyFilters();
 </script>
