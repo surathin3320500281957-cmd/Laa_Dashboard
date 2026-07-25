@@ -1382,17 +1382,21 @@ function ensureLisMap(){
   // Do not add overflow:auto/scroll here; it breaks touch dragging (see plan doc).
 }
 
+let lisMarkers = {};
 function buildLisMarkers(rows){
   if (!lisMarkerGroup) return;
   lisMarkerGroup.clearLayers();
+  lisMarkers = {};
   const pts = [];
-  rows.forEach(r => {
+  rows.forEach((r, idx) => {
     if (!r.lat || !r.lng) return;
     const m = L.marker([r.lat, r.lng], { icon: makeIcon(null, false) });
     const locationText = [r.subdistrict, r.district, r.province].filter(Boolean).join(' / ') || '-';
+    const netAreaText = r.net_area2 != null ? String(r.net_area2) : (r.net_area != null ? String(r.net_area) : '-');
     m.bindPopup(`
       <div class="popup-title">โฉนดเลขที่ ${escapeHtml(r.deedno || '-')}${r.landno ? ' · เลขที่ดิน ' + escapeHtml(r.landno) : ''}</div>
       <div class="popup-meta">${escapeHtml(locationText)}</div>
+      <div class="popup-meta">📐 เนื้อที่ตามโฉนด ${r.deed_area != null ? escapeHtml(String(r.deed_area)) : '-'} · ใช้จริง ${escapeHtml(netAreaText)}</div>
       <div class="coord-row" style="margin:6px 0;">
         <span class="coord-text">📍 ${r.lat.toFixed(6)}, ${r.lng.toFixed(6)}</span>
         <button class="coord-copy" onclick="copyCoord(${r.lat}, ${r.lng}, this)">คัดลอก</button>
@@ -1400,9 +1404,11 @@ function buildLisMarkers(rows){
       <div style="display:flex;gap:10px;margin-top:6px;flex-wrap:wrap;">
         <a class="popup-link" href="${lisAerialLink(r.lat, r.lng)}" target="_blank">✈️ มุมมองทางอากาศ</a>
         <a class="popup-link" href="${lisEarthLink(r.lat, r.lng)}" target="_blank">🌍 Google Earth</a>
+        <a class="popup-link" href="https://landsmaps.dol.go.th/" target="_blank">🔍 LandsMaps${r.province ? ' (' + escapeHtml(r.province) + ')' : ''}</a>
       </div>
     `);
     lisMarkerGroup.addLayer(m);
+    lisMarkers[idx] = m;
     pts.push([r.lat, r.lng]);
   });
   if (pts.length === 1){
@@ -1410,6 +1416,12 @@ function buildLisMarkers(rows){
   } else if (pts.length > 1){
     lisMap.fitBounds(L.latLngBounds(pts), { padding: [40,40], maxZoom: 15 });
   }
+}
+
+function showLisMarkerPopup(idx){
+  const m = lisMarkers[idx];
+  if (!m || !lisMap) return;
+  lisMarkerGroup.zoomToShowLayer(m, () => m.openPopup());
 }
 
 function switchTab(name){
@@ -1505,8 +1517,8 @@ function renderLisList(query){
       </div>
       <div class="card-meta">${escapeHtml(r.func || '')}</div>
       <div style="display:flex;gap:6px;flex-wrap:wrap;">
-        <span class="deed-badge">📐 ตามโฉนด ${r.deed_area != null ? escapeHtml(String(r.deed_area)) : '-'}</span>
-        <span class="deed-badge">📐 ใช้จริง ${r.net_area2 != null ? escapeHtml(String(r.net_area2)) : (r.net_area != null ? escapeHtml(String(r.net_area)) : '-')}</span>
+        <button class="deed-badge" data-action="stop" onclick="showLisMarkerPopup(${idx})" style="cursor:pointer;font:inherit;">📐 ตามโฉนด ${r.deed_area != null ? escapeHtml(String(r.deed_area)) : '-'}</button>
+        <button class="deed-badge" data-action="stop" onclick="showLisMarkerPopup(${idx})" style="cursor:pointer;font:inherit;">📐 ใช้จริง ${r.net_area2 != null ? escapeHtml(String(r.net_area2)) : (r.net_area != null ? escapeHtml(String(r.net_area)) : '-')}</button>
       </div>
       <div class="card-addr">${escapeHtml(locationText)}</div>
       <div class="card-links">
