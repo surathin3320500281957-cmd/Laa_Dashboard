@@ -451,9 +451,31 @@
     <div class="kpi" id="lisKpiBar"></div>
     <div class="filterTop">
       <input type="text" id="lisSearchBox" placeholder="พิมพ์เลขที่โฉนด / เลขที่ดิน / ตำบล / อำเภอ / จังหวัด..." disabled />
-      <button class="btn ghost" id="lisResetBtn">ล้างการค้นหา</button>
+      <button class="btn ghost" id="lisResetBtn">ล้างตัวกรอง</button>
+      <button class="btn pdf" id="exportLisPdfBtn">📄 Export PDF</button>
+      <button class="btn xls" id="exportLisXlsBtn">📊 Export Excel</button>
     </div>
-    <div id="lisActiveChip"></div>
+    <div class="activeFilters" id="lisActiveFilters"></div>
+
+    <div class="filterGroup" style="border-top-color:#2f6fed;">
+      <div class="filterLabel" style="color:#1f56cf;">จังหวัด</div>
+      <div class="combo" id="combo-lis-province"></div>
+    </div>
+
+    <div class="filterGroup" style="border-top-color:#7c5cff;">
+      <div class="filterLabel" style="color:#6a45e0;">อำเภอ/เขต</div>
+      <div class="combo" id="combo-lis-district"></div>
+    </div>
+
+    <div class="filterGroup" style="border-top-color:#0fb5b0;">
+      <div class="filterLabel" style="color:#0a8f8a;">ประเภทการใช้ที่ดิน</div>
+      <div class="chipRow" id="chips-lis-category"></div>
+    </div>
+
+    <div class="filterGroup" style="border-top-color:#f5a623;">
+      <div class="filterLabel" style="color:#9a6b00;">ขนาดพื้นที่ (ตามโฉนด)</div>
+      <div class="chipRow" id="chips-lis-area"></div>
+    </div>
   </div>
   <main>
     <div id="lisMap"></div>
@@ -1338,6 +1360,53 @@ document.getElementById('detailOverlay').addEventListener('click', closeDetail);
 let LIS_DATA = null;
 let lisDataLoadingPromise = null;
 let lisMap = null, lisMarkerGroup = null, lisBaseLayer = null, lisIsSatellite = true;
+let lisQuery = '';
+let lisCurrentMatches = [];
+let lisState = { province: null, district: null, category: new Set(), areaRange: new Set() };
+
+const lisCategoryDefs = [
+  { key: 'vacant',     label: 'ที่ดินเปล่า/รอดำเนินการ',    color: '#f5a623', codes: [0,51,52,53,54] },
+  { key: 'infra',      label: 'พื้นที่ส่วนกลาง/สาธารณูปโภค', color: '#0fb5b0', codes: [21,22,23,24,25,26,27] },
+  { key: 'commercial', label: 'จัดประโยชน์เชิงพาณิชย์',      color: '#2f6fed', codes: [28,29,30,33,35,40,41] },
+  { key: 'other',      label: 'อื่นๆ พิเศษ',                color: '#98a2ba', codes: [31,32,34,36,60] },
+];
+const lisAreaDefs = [
+  { key: 'lt100',   label: '< 100 ตร.ว.',       color: '#12b76a', test: a => a != null && a < 100 },
+  { key: 'lt1rai',  label: '100 ตร.ว. - 1 ไร่',  color: '#f5a623', test: a => a != null && a >= 100 && a < 400 },
+  { key: 'lt5rai',  label: '1 - 5 ไร่',          color: '#ff8a3d', test: a => a != null && a >= 400 && a < 2000 },
+  { key: 'gte5rai', label: '> 5 ไร่',            color: '#e5342b', test: a => a != null && a >= 2000 },
+];
+
+function lisCategoryOf(func){
+  if (!func) return 'other';
+  const m = func.match(/^(\d+)/);
+  const code = m ? parseInt(m[1], 10) : null;
+  for (const def of lisCategoryDefs){ if (code !== null && def.codes.includes(code)) return def.key; }
+  return 'other';
+}
+function lisAreaRangeOf(area){
+  for (const def of lisAreaDefs){ if (def.test(area)) return def.key; }
+  return null;
+}
+function lisBaseMatch(r, exclude){
+  if (exclude !== 'province' && lisState.province && r.province !== lisState.province) return false;
+  if (exclude !== 'district' && lisState.district && r.district !== lisState.district) return false;
+  if (exclude !== 'category' && lisState.category.size && !lisState.category.has(lisCategoryOf(r.func))) return false;
+  if (exclude !== 'areaRange' && lisState.areaRange.size && !lisState.areaRange.has(lisAreaRangeOf(r.deed_area))) return false;
+  if (exclude !== 'q' && lisQuery){
+    const q = lisQuery;
+    const qLower = q.toLowerCase();
+    const isNum = /^\d+$/.test(q);
+    const ok = isNum
+      ? ((r.deedno && r.deedno.includes(q)) || (r.landno && r.landno.includes(q)))
+      : [r.deedno, r.landno, r.subdistrict, r.district, r.province].some(v => v && String(v).toLowerCase().includes(qLower));
+    if (!ok) return false;
+  }
+  return true;
+}
+function lisHasActiveFilters(){
+  return !!(lisState.province || lisState.district || lisState.category.size || lisState.areaRange.size || lisQuery);
+}
 
 function ensureLisDataLoaded(){
   if (LIS_DATA) return Promise.resolve(LIS_DATA);
@@ -1351,9 +1420,7 @@ function ensureLisDataLoaded(){
       LIS_DATA = data;
       document.getElementById('lisSearchBox').disabled = false;
       document.getElementById('lisSearchBox').placeholder = 'พิมพ์เลขที่โฉนด / เลขที่ดิน / ตำบล / อำเภอ / จังหวัด...';
-      document.getElementById('lisResults').innerHTML =
-        `<div class="lis-empty">พิมพ์เลขที่โฉนด / เลขที่ดิน / ตำบล / อำเภอ / จังหวัด เพื่อค้นหาในฐานข้อมูลกรมที่ดิน (${LIS_DATA.length.toLocaleString()} รายการ)</div>`;
-      renderLisKpi([], false);
+      refreshLisView();
       return LIS_DATA;
     })
     .catch(err => {
@@ -1453,7 +1520,7 @@ function switchTab(name){
   ensureLisMap();
   setTimeout(() => lisMap.invalidateSize(), 0);
   ensureLisDataLoaded().then(() => {
-    renderLisList(document.getElementById('lisSearchBox').value.trim());
+    refreshLisView();
   }).catch(() => { /* error already shown in ensureLisDataLoaded */ });
 }
 
@@ -1464,12 +1531,10 @@ function lisAerialLink(lat, lng){
   return `https://www.google.com/maps/place/${lat},${lng}/@${lat},${lng},17z/data=!3m1!1e3`;
 }
 
-function renderLisKpi(matches, hasQuery){
+function renderLisKpi(matches){
   const totalDb = LIS_DATA ? LIS_DATA.length : 0;
-  // when no query yet, treat the whole database as "the results" so the cards
-  // are never empty/blank on first load — gives an immediate data-quality overview
-  const foundCount = hasQuery ? matches.length : totalDb;
-  const withCoord = hasQuery ? matches.filter(r => r.lat && r.lng).length : (LIS_DATA ? LIS_DATA.filter(r => r.lat && r.lng).length : 0);
+  const foundCount = matches.length;
+  const withCoord = matches.filter(r => r.lat && r.lng).length;
   const withoutCoord = foundCount - withCoord;
   document.getElementById('lisKpiBar').innerHTML = `
     <div class="kcard"><b>${totalDb.toLocaleString()}</b><span>รายการทั้งหมดในฐาน</span></div>
@@ -1479,49 +1544,148 @@ function renderLisKpi(matches, hasQuery){
   `;
 }
 
-function renderLisActiveChip(query){
-  const el = document.getElementById('lisActiveChip');
-  if (!el) return;
-  if (!query){
-    el.innerHTML = '';
-    return;
+function createLisCombo(containerId, key, allLabel){
+  if (!LIS_DATA) return;
+  const container = document.getElementById(containerId);
+  container.innerHTML = `
+    <div class="comboTrigger" id="${containerId}-trigger">
+      <span class="val">${escapeHtml(lisState[key] || allLabel)}</span>
+      <span class="chev">▾</span>
+    </div>
+    <div class="comboPanel" id="${containerId}-panel">
+      <input type="text" placeholder="พิมพ์เพื่อค้นหา..." id="${containerId}-search" />
+      <div class="comboList" id="${containerId}-list"></div>
+    </div>
+  `;
+  const trigger = document.getElementById(containerId + '-trigger');
+  const panel = document.getElementById(containerId + '-panel');
+  const searchInput = document.getElementById(containerId + '-search');
+
+  let options;
+  if (key === 'district'){
+    options = [...new Set(LIS_DATA.filter(r => !lisState.province || r.province === lisState.province).map(r => r.district).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'th'));
+  } else {
+    options = [...new Set(LIS_DATA.map(r => r[key]).filter(Boolean))];
   }
-  el.innerHTML = `<span class="chip-search">กำลังค้นหา: "${escapeHtml(query)}" <button onclick="document.getElementById('lisSearchBox').value='';renderLisList('');document.getElementById('lisSearchBox').focus();">✕</button></span>`;
+
+  function renderList(filterText){
+    const listEl = document.getElementById(containerId + '-list');
+    const ft = (filterText || '').toLowerCase();
+    const totalCnt = LIS_DATA.filter(r => lisBaseMatch(r, key)).length;
+    let html = `<div class="comboItem ${!lisState[key] ? 'selected' : ''}" data-val="">
+      <span>${escapeHtml(allLabel)}</span><span class="cnt">${totalCnt.toLocaleString()}</span>
+    </div>`;
+    const withCounts = options
+      .filter(v => v.toLowerCase().includes(ft))
+      .map(v => ({ v, cnt: LIS_DATA.filter(r => r[key] === v && lisBaseMatch(r, key)).length }))
+      .sort((a,b) => b.cnt - a.cnt);
+    withCounts.forEach(({v,cnt}) => {
+      html += `<div class="comboItem ${lisState[key]===v?'selected':''} ${cnt===0?'disabled':''}" data-val="${escapeHtml(v)}">
+        <span>${escapeHtml(v)}</span><span class="cnt">${cnt.toLocaleString()} ราย</span>
+      </div>`;
+    });
+    listEl.innerHTML = html;
+    listEl.querySelectorAll('.comboItem').forEach(item => {
+      item.addEventListener('click', () => {
+        lisState[key] = item.dataset.val || null;
+        if (key === 'province') lisState.district = null; // reset cascading child when parent changes
+        panel.classList.remove('open');
+        refreshLisView();
+      });
+    });
+  }
+
+  trigger.addEventListener('click', (e) => {
+    e.stopPropagation();
+    document.querySelectorAll('.comboPanel.open').forEach(p => { if (p !== panel) p.classList.remove('open'); });
+    panel.classList.toggle('open');
+    if (panel.classList.contains('open')){ searchInput.value=''; renderList(''); searchInput.focus(); }
+  });
+  searchInput.addEventListener('input', () => renderList(searchInput.value));
+  searchInput.addEventListener('click', e => e.stopPropagation());
 }
 
-function renderLisList(query){
-  if (!LIS_DATA) return; // data not loaded yet; ensureLisDataLoaded() will call this again once ready
+function buildLisCategoryChips(){
+  const el = document.getElementById('chips-lis-category');
+  el.innerHTML = '';
+  lisCategoryDefs.forEach(def => {
+    const cnt = LIS_DATA.filter(r => lisCategoryOf(r.func) === def.key && lisBaseMatch(r, 'category')).length;
+    const active = lisState.category.has(def.key);
+    const chip = document.createElement('div');
+    chip.className = 'chip' + (active ? ' active' : '') + (cnt === 0 ? ' disabled' : '');
+    chip.style.cssText = active
+      ? `background:${def.color};border-color:${def.color};color:#fff;`
+      : `border-color:${def.color}66;color:${def.color};`;
+    chip.innerHTML = `${escapeHtml(def.label)}<span class="cnt">${cnt}</span>`;
+    chip.addEventListener('click', () => { toggle(lisState.category, def.key); refreshLisView(); });
+    el.appendChild(chip);
+  });
+}
+
+function buildLisAreaChips(){
+  const el = document.getElementById('chips-lis-area');
+  el.innerHTML = '';
+  lisAreaDefs.forEach(def => {
+    const cnt = LIS_DATA.filter(r => lisAreaRangeOf(r.deed_area) === def.key && lisBaseMatch(r, 'areaRange')).length;
+    const active = lisState.areaRange.has(def.key);
+    const chip = document.createElement('div');
+    chip.className = 'chip' + (active ? ' active' : '') + (cnt === 0 ? ' disabled' : '');
+    chip.style.cssText = active
+      ? `background:${def.color};border-color:${def.color};color:#fff;`
+      : `border-color:${def.color}66;color:${def.color};`;
+    chip.innerHTML = `${escapeHtml(def.label)}<span class="cnt">${cnt}</span>`;
+    chip.addEventListener('click', () => { toggle(lisState.areaRange, def.key); refreshLisView(); });
+    el.appendChild(chip);
+  });
+}
+
+function renderLisActiveFilters(){
+  const chips = [];
+  if (lisState.province) chips.push({ label: `จังหวัด: ${lisState.province}`, color:'#2f6fed', onRemove: () => { lisState.province = null; lisState.district = null; } });
+  if (lisState.district) chips.push({ label: `อำเภอ/เขต: ${lisState.district}`, color:'#7c5cff', onRemove: () => { lisState.district = null; } });
+  lisState.category.forEach(k => {
+    const def = lisCategoryDefs.find(d => d.key === k);
+    chips.push({ label: def ? def.label : k, color: def ? def.color : '#0fb5b0', onRemove: () => lisState.category.delete(k) });
+  });
+  lisState.areaRange.forEach(k => {
+    const def = lisAreaDefs.find(d => d.key === k);
+    chips.push({ label: def ? def.label : k, color: def ? def.color : '#f5a623', onRemove: () => lisState.areaRange.delete(k) });
+  });
+  if (lisQuery) chips.push({ label: `ค้นหา: "${lisQuery}"`, color:'#2f6fed', onRemove: () => { document.getElementById('lisSearchBox').value = ''; } });
+
+  const container = document.getElementById('lisActiveFilters');
+  if (chips.length === 0){
+    container.classList.remove('show');
+    container.innerHTML = '';
+    return;
+  }
+  container.classList.add('show');
+  container.innerHTML = chips.map((c, i) => `
+    <span class="af-chip" style="background:${c.color};">
+      ${escapeHtml(c.label)}
+      <span class="af-x" data-idx="${i}">✕</span>
+    </span>
+  `).join('');
+  container.querySelectorAll('.af-x').forEach((elx, i) => {
+    elx.addEventListener('click', () => { chips[i].onRemove(); refreshLisView(); });
+  });
+}
+
+function renderLisResultsList(matches){
   const box = document.getElementById('lisResults');
   const countEl = document.getElementById('lisResultCount');
 
-  if (!query){
+  if (!lisHasActiveFilters()){
     countEl.textContent = '';
-    box.innerHTML = `<div class="lis-empty">พิมพ์เลขที่โฉนด / เลขที่ดิน / ตำบล / อำเภอ / จังหวัด เพื่อค้นหาในฐานข้อมูลกรมที่ดิน (${LIS_DATA.length.toLocaleString()} รายการ)</div>`;
-    renderLisActiveChip('');
-    renderLisKpi([], false);
+    box.innerHTML = `<div class="lis-empty">พิมพ์คำค้น หรือเลือกตัวกรองด้านบน เพื่อค้นหาในฐานข้อมูลกรมที่ดิน (${LIS_DATA.length.toLocaleString()} รายการ)</div>`;
     buildLisMarkers([]);
     return;
   }
 
-  const q = query.trim();
-  const qLower = q.toLowerCase();
-  const isNumericQuery = /^\d+$/.test(q);
-
-  const matches = LIS_DATA.filter(r => {
-    if (isNumericQuery){
-      return (r.deedno && r.deedno.includes(q)) || (r.landno && r.landno.includes(q));
-    }
-    return [r.deedno, r.landno, r.subdistrict, r.district, r.province].some(
-      v => v && String(v).toLowerCase().includes(qLower)
-    );
-  });
-
   countEl.textContent = `พบ ${matches.length.toLocaleString()} รายการ`;
-  renderLisActiveChip(q);
-  renderLisKpi(matches, true);
 
   if (matches.length === 0){
-    box.innerHTML = `<div class="lis-empty">ไม่พบ "${escapeHtml(q)}" ในฐานข้อมูล V_LIS_TO_EIS — ลองตรวจสอบเลขที่โฉนดอีกครั้ง หรือค้นหาต่อใน LandsMaps โดยตรง<br><br>
+    box.innerHTML = `<div class="lis-empty">ไม่พบรายการที่ตรงกับเงื่อนไข — ลองปรับตัวกรอง หรือค้นหาต่อใน LandsMaps โดยตรง<br><br>
       <a class="landsmaps-link" href="https://landsmaps.dol.go.th/" target="_blank">🔍 เปิด LandsMaps เพื่อค้นหาต่อ</a></div>`;
     buildLisMarkers([]);
     return;
@@ -1564,6 +1728,21 @@ function renderLisList(query){
   box.innerHTML = cardsHtml + overNote;
 }
 
+function refreshLisView(){
+  if (!LIS_DATA) return;
+  lisQuery = document.getElementById('lisSearchBox').value.trim();
+  const matches = LIS_DATA.filter(r => lisBaseMatch(r, null));
+  lisCurrentMatches = matches;
+
+  createLisCombo('combo-lis-province', 'province', 'ทุกจังหวัด');
+  createLisCombo('combo-lis-district', 'district', 'ทุกอำเภอ/เขต');
+  buildLisCategoryChips();
+  buildLisAreaChips();
+  renderLisActiveFilters();
+  renderLisKpi(matches);
+  renderLisResultsList(matches);
+}
+
 // NOTE: this handler deliberately does NOT call scrollIntoView anywhere — a past
 // version forced the list to re-center on every click, which fought with the
 // user's own manual scrolling. Clicking a card only opens its primary link.
@@ -1574,11 +1753,91 @@ document.getElementById('lisResults').addEventListener('click', (e) => {
 });
 
 document.getElementById('lisSearchBox').addEventListener('input', debounce(() => {
-  renderLisList(document.getElementById('lisSearchBox').value.trim());
+  refreshLisView();
 }, 200));
 document.getElementById('lisResetBtn').addEventListener('click', () => {
   document.getElementById('lisSearchBox').value = '';
-  renderLisList('');
+  lisState = { province: null, district: null, category: new Set(), areaRange: new Set() };
+  refreshLisView();
+});
+
+document.getElementById('exportLisPdfBtn').addEventListener('click', () => {
+  const rows = lisCurrentMatches;
+  const win = window.open('', '_blank');
+  const tableRows = rows.map((r, i) => `
+    <tr>
+      <td>${i+1}</td>
+      <td>${escapeHtml(r.deedno || '')}</td>
+      <td>${escapeHtml(r.landno || '')}</td>
+      <td>${escapeHtml(r.func || '')}</td>
+      <td>${escapeHtml(r.province || '')}</td>
+      <td>${escapeHtml(r.district || '')}</td>
+      <td>${escapeHtml(r.subdistrict || '')}</td>
+      <td>${r.deed_area ?? ''}</td>
+      <td>${r.net_area2 ?? r.net_area ?? ''}</td>
+      <td>${r.lat ? r.lat.toFixed(6) + ', ' + r.lng.toFixed(6) : 'ไม่มีพิกัด'}</td>
+    </tr>`).join('');
+  win.document.write(`
+    <!DOCTYPE html><html lang="th"><head><meta charset="UTF-8">
+    <title>รายงานที่ดิน LIS</title>
+    <style>
+      body{ font-family:"Sarabun","Segoe UI",Tahoma,sans-serif; padding:24px; color:#111; }
+      h1{ font-size:18px; margin-bottom:4px; }
+      p.meta{ font-size:12px; color:#555; margin-top:0; margin-bottom:16px; }
+      table{ width:100%; border-collapse:collapse; font-size:10px; }
+      th, td{ border:1px solid #ccc; padding:5px 6px; text-align:left; vertical-align:top; }
+      th{ background:#f0f0f0; }
+      @media print{ button{ display:none; } }
+    </style></head><body>
+    <h1>รายงานที่ดิน LIS (V_LIS_TO_EIS)</h1>
+    <p class="meta">จำนวน ${rows.length.toLocaleString()} รายการ · พิมพ์เมื่อ ${new Date().toLocaleString('th-TH')}</p>
+    <button onclick="window.print()">พิมพ์ / บันทึกเป็น PDF</button>
+    <table>
+      <thead><tr>
+        <th>ลำดับ</th><th>เลขที่โฉนด</th><th>เลขที่ดิน</th><th>ประเภทการใช้ที่ดิน</th>
+        <th>จังหวัด</th><th>อำเภอ/เขต</th><th>ตำบล/แขวง</th><th>เนื้อที่ตามโฉนด</th><th>เนื้อที่ใช้จริง</th><th>พิกัด</th>
+      </tr></thead>
+      <tbody>${tableRows}</tbody>
+    </table>
+    </body></html>
+  `);
+  win.document.close();
+  setTimeout(() => win.print(), 400);
+});
+
+document.getElementById('exportLisXlsBtn').addEventListener('click', () => {
+  const rows = lisCurrentMatches;
+  const headers = ['ลำดับ','เลขที่โฉนด','เลขที่ดิน','ประเภทการใช้ที่ดิน','จังหวัด','อำเภอ/เขต','ตำบล/แขวง','เนื้อที่ตามโฉนด','เนื้อที่ใช้จริง','ละติจูด','ลองจิจูด'];
+  const bodyRows = rows.map((r, i) => `
+    <tr>
+      <td>${i+1}</td>
+      <td>${escapeHtml(r.deedno || '')}</td>
+      <td>${escapeHtml(r.landno || '')}</td>
+      <td>${escapeHtml(r.func || '')}</td>
+      <td>${escapeHtml(r.province || '')}</td>
+      <td>${escapeHtml(r.district || '')}</td>
+      <td>${escapeHtml(r.subdistrict || '')}</td>
+      <td>${r.deed_area ?? ''}</td>
+      <td>${r.net_area2 ?? r.net_area ?? ''}</td>
+      <td>${r.lat ?? ''}</td>
+      <td>${r.lng ?? ''}</td>
+    </tr>`).join('');
+  const html = `
+    <html><head><meta charset="UTF-8"></head><body>
+    <table border="1">
+      <tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr>
+      ${bodyRows}
+    </table>
+    </body></html>`;
+  const blob = new Blob(['\ufeff' + html], { type: 'application/vnd.ms-excel;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `ที่ดิน_LIS_${rows.length}รายการ.xls`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 });
 
 applyFilters();
