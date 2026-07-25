@@ -1471,11 +1471,10 @@ function buildLisMarkers(rows){
   rows.forEach((r, idx) => {
     if (!r.lat || !r.lng) return;
     const m = L.marker([r.lat, r.lng], { icon: makeIcon(null, false) });
-    const locationText = [r.subdistrict, r.district, r.province].filter(Boolean).join(' / ') || '-';
     const netAreaText = r.net_area2 != null ? String(r.net_area2) : (r.net_area != null ? String(r.net_area) : '-');
     m.bindPopup(`
       <div class="popup-title">โฉนดเลขที่ ${escapeHtml(r.deedno || '-')}${r.landno ? ' · เลขที่ดิน ' + escapeHtml(r.landno) : ''}${r.deedno ? ` <button class="mini-copy" onclick="copyText('${escapeHtml(r.deedno)}', this)">คัดลอก</button>` : ''}</div>
-      <div class="popup-meta">${escapeHtml(locationText)}</div>
+      <div class="popup-meta">${escapeHtml(r.func || '-')}</div>
       <div class="popup-meta">📐 เนื้อที่ตามโฉนด ${r.deed_area != null ? escapeHtml(String(r.deed_area)) : '-'} · ใช้จริง ${escapeHtml(netAreaText)}</div>
       <div class="coord-row" style="margin:6px 0;">
         <span class="coord-text">📍 ${r.lat.toFixed(6)}, ${r.lng.toFixed(6)}</span>
