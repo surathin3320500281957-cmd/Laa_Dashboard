@@ -55,6 +55,16 @@
   .tabBtn{ border:1px solid var(--border); background:#fff; color:var(--muted); font-weight:700; font-size:13px; padding:8px 16px; border-radius:20px; cursor:pointer; }
   .tabBtn.active{ background:var(--accent); border-color:var(--accent); color:#fff; }
   .lis-no-coord{ background:#fff7e6; border:1px solid #ffd98a; color:#9a6b00; border-radius:8px; padding:6px 10px; font-size:12px; margin-top:6px; display:inline-block; }
+  #lisActiveChip{ margin-top:10px; }
+  .chip-search{
+    display:inline-flex; align-items:center; gap:8px; background:#2f6fed; color:#fff;
+    font-size:13px; font-weight:700; padding:5px 8px 5px 14px; border-radius:20px;
+  }
+  .chip-search button{
+    background:rgba(255,255,255,.25); border:none; color:#fff; border-radius:50%;
+    width:20px; height:20px; cursor:pointer; font-size:12px; line-height:1;
+  }
+  .chip-search button:hover{ background:rgba(255,255,255,.4); }
   .filterTop{ display:flex; gap:8px; align-items:center; margin-bottom:14px; flex-wrap:wrap; position:sticky; top:0; background:var(--panel); z-index:6; padding-bottom:6px; }
   .filterTop input[type=text]{
     flex:1; min-width:200px; padding:9px 14px; border-radius:10px; border:1px solid var(--border);
@@ -443,6 +453,7 @@
       <input type="text" id="lisSearchBox" placeholder="พิมพ์เลขที่โฉนด / เลขที่ดิน / ตำบล / อำเภอ / จังหวัด..." disabled />
       <button class="btn ghost" id="lisResetBtn">ล้างการค้นหา</button>
     </div>
+    <div id="lisActiveChip"></div>
   </div>
   <main>
     <div id="lisMap"></div>
@@ -1455,20 +1466,27 @@ function lisAerialLink(lat, lng){
 
 function renderLisKpi(matches, hasQuery){
   const totalDb = LIS_DATA ? LIS_DATA.length : 0;
-  if (!hasQuery){
-    document.getElementById('lisKpiBar').innerHTML = `
-      <div class="kcard"><b>${totalDb.toLocaleString()}</b><span>รายการทั้งหมดในฐาน</span></div>
-    `;
-    return;
-  }
-  const withCoord = matches.filter(r => r.lat && r.lng).length;
-  const withoutCoord = matches.length - withCoord;
+  // when no query yet, treat the whole database as "the results" so the cards
+  // are never empty/blank on first load — gives an immediate data-quality overview
+  const foundCount = hasQuery ? matches.length : totalDb;
+  const withCoord = hasQuery ? matches.filter(r => r.lat && r.lng).length : (LIS_DATA ? LIS_DATA.filter(r => r.lat && r.lng).length : 0);
+  const withoutCoord = foundCount - withCoord;
   document.getElementById('lisKpiBar').innerHTML = `
     <div class="kcard"><b>${totalDb.toLocaleString()}</b><span>รายการทั้งหมดในฐาน</span></div>
-    <div class="kcard k-geo"><b>${matches.length.toLocaleString()}</b><span>ผลลัพธ์ที่พบ</span></div>
-    <div class="kcard k-geo"><b>${withCoord.toLocaleString()}</b><span>มีพิกัด</span></div>
-    <div class="kcard k-approx"><b>${withoutCoord.toLocaleString()}</b><span>ไม่มีพิกัด</span></div>
+    <div class="kcard k-geo"><b>${foundCount.toLocaleString()}</b><span>ผลลัพธ์ที่พบ</span></div>
+    <div class="kcard k-A"><b>${withCoord.toLocaleString()}</b><span>มีพิกัด</span></div>
+    <div class="kcard k-D"><b>${withoutCoord.toLocaleString()}</b><span>ไม่มีพิกัด</span></div>
   `;
+}
+
+function renderLisActiveChip(query){
+  const el = document.getElementById('lisActiveChip');
+  if (!el) return;
+  if (!query){
+    el.innerHTML = '';
+    return;
+  }
+  el.innerHTML = `<span class="chip-search">กำลังค้นหา: "${escapeHtml(query)}" <button onclick="document.getElementById('lisSearchBox').value='';renderLisList('');document.getElementById('lisSearchBox').focus();">✕</button></span>`;
 }
 
 function renderLisList(query){
@@ -1479,6 +1497,7 @@ function renderLisList(query){
   if (!query){
     countEl.textContent = '';
     box.innerHTML = `<div class="lis-empty">พิมพ์เลขที่โฉนด / เลขที่ดิน / ตำบล / อำเภอ / จังหวัด เพื่อค้นหาในฐานข้อมูลกรมที่ดิน (${LIS_DATA.length.toLocaleString()} รายการ)</div>`;
+    renderLisActiveChip('');
     renderLisKpi([], false);
     buildLisMarkers([]);
     return;
@@ -1498,6 +1517,7 @@ function renderLisList(query){
   });
 
   countEl.textContent = `พบ ${matches.length.toLocaleString()} รายการ`;
+  renderLisActiveChip(q);
   renderLisKpi(matches, true);
 
   if (matches.length === 0){
