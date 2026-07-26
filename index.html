@@ -1772,11 +1772,14 @@ document.getElementById('lisResetBtn').addEventListener('click', () => {
 document.getElementById('exportLisPdfBtn').addEventListener('click', () => {
   const rows = lisCurrentMatches;
   const win = window.open('', '_blank');
-  const tableRows = rows.map((r, i) => `
+  const tableRows = rows.map((r, i) => {
+    const catDef = lisCategoryDefs.find(d => d.key === lisCategoryOf(r.func)) || lisCategoryDefs[lisCategoryDefs.length - 1];
+    return `
     <tr>
       <td>${i+1}</td>
       <td>${escapeHtml(r.deedno || '')}</td>
       <td>${escapeHtml(r.landno || '')}</td>
+      <td>${escapeHtml(catDef.label)}</td>
       <td>${escapeHtml(r.func || '')}</td>
       <td>${escapeHtml(r.province || '')}</td>
       <td>${escapeHtml(r.district || '')}</td>
@@ -1784,7 +1787,8 @@ document.getElementById('exportLisPdfBtn').addEventListener('click', () => {
       <td>${r.deed_area ?? ''}</td>
       <td>${r.net_area2 ?? r.net_area ?? ''}</td>
       <td>${r.lat ? r.lat.toFixed(6) + ', ' + r.lng.toFixed(6) : 'ไม่มีพิกัด'}</td>
-    </tr>`).join('');
+    </tr>`;
+  }).join('');
   win.document.write(`
     <!DOCTYPE html><html lang="th"><head><meta charset="UTF-8">
     <title>รายงานที่ดิน LIS</title>
@@ -1802,7 +1806,7 @@ document.getElementById('exportLisPdfBtn').addEventListener('click', () => {
     <button onclick="window.print()">พิมพ์ / บันทึกเป็น PDF</button>
     <table>
       <thead><tr>
-        <th>ลำดับ</th><th>เลขที่โฉนด</th><th>เลขที่ดิน</th><th>ประเภทการใช้ที่ดิน</th>
+        <th>ลำดับ</th><th>เลขที่โฉนด</th><th>เลขที่ดิน</th><th>หมวดหมู่</th><th>ประเภทการใช้ที่ดิน</th>
         <th>จังหวัด</th><th>อำเภอ/เขต</th><th>ตำบล/แขวง</th><th>เนื้อที่ตามโฉนด</th><th>เนื้อที่ใช้จริง</th><th>พิกัด</th>
       </tr></thead>
       <tbody>${tableRows}</tbody>
@@ -1815,12 +1819,15 @@ document.getElementById('exportLisPdfBtn').addEventListener('click', () => {
 
 document.getElementById('exportLisXlsBtn').addEventListener('click', () => {
   const rows = lisCurrentMatches;
-  const headers = ['ลำดับ','เลขที่โฉนด','เลขที่ดิน','ประเภทการใช้ที่ดิน','จังหวัด','อำเภอ/เขต','ตำบล/แขวง','เนื้อที่ตามโฉนด','เนื้อที่ใช้จริง','ละติจูด','ลองจิจูด'];
-  const bodyRows = rows.map((r, i) => `
+  const headers = ['ลำดับ','เลขที่โฉนด','เลขที่ดิน','หมวดหมู่','ประเภทการใช้ที่ดิน','จังหวัด','อำเภอ/เขต','ตำบล/แขวง','เนื้อที่ตามโฉนด','เนื้อที่ใช้จริง','ละติจูด','ลองจิจูด'];
+  const bodyRows = rows.map((r, i) => {
+    const catDef = lisCategoryDefs.find(d => d.key === lisCategoryOf(r.func)) || lisCategoryDefs[lisCategoryDefs.length - 1];
+    return `
     <tr>
       <td>${i+1}</td>
       <td>${escapeHtml(r.deedno || '')}</td>
       <td>${escapeHtml(r.landno || '')}</td>
+      <td>${escapeHtml(catDef.label)}</td>
       <td>${escapeHtml(r.func || '')}</td>
       <td>${escapeHtml(r.province || '')}</td>
       <td>${escapeHtml(r.district || '')}</td>
@@ -1829,7 +1836,8 @@ document.getElementById('exportLisXlsBtn').addEventListener('click', () => {
       <td>${r.net_area2 ?? r.net_area ?? ''}</td>
       <td>${r.lat ?? ''}</td>
       <td>${r.lng ?? ''}</td>
-    </tr>`).join('');
+    </tr>`;
+  }).join('');
   const html = `
     <html><head><meta charset="UTF-8"></head><body>
     <table border="1">
