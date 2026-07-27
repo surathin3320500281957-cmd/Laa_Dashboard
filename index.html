@@ -1011,6 +1011,7 @@ document.getElementById('exportPdfBtn').addEventListener('click', () => {
       <td>${escapeHtml(r.land_type)}</td>
       <td>${escapeHtml(areaText(r))}</td>
       <td>${escapeHtml(r.address)}</td>
+      <td>${escapeHtml(r.notes || '')}</td>
     </tr>`).join('');
   win.document.write(`
     <!DOCTYPE html><html lang="th"><head><meta charset="UTF-8">
@@ -1030,7 +1031,7 @@ document.getElementById('exportPdfBtn').addEventListener('click', () => {
     <table>
       <thead><tr>
         <th>ลำดับ</th><th>ฝ่าย</th><th>กอง</th><th>สคล./สคจ.</th><th>รหัสโครงการ</th><th>ชื่อโครงการ</th><th>เลขที่โฉนด</th>
-        <th>เกรด</th><th>การพิจารณาใช้ประโยชน์</th><th>สถานะ</th><th>ประเภทขนาดพื้นที่</th><th>ประเภทที่ดิน</th><th>เนื้อที่</th><th>ที่อยู่</th>
+        <th>เกรด</th><th>การพิจารณาใช้ประโยชน์</th><th>สถานะ</th><th>ประเภทขนาดพื้นที่</th><th>ประเภทที่ดิน</th><th>เนื้อที่</th><th>ที่อยู่</th><th>บันทึกเบื้องต้น (หมายเหตุ)</th>
       </tr></thead>
       <tbody>${tableRows}</tbody>
     </table>
@@ -1042,7 +1043,7 @@ document.getElementById('exportPdfBtn').addEventListener('click', () => {
 
 document.getElementById('exportXlsBtn').addEventListener('click', () => {
   const rows = currentRows;
-  const headers = ['ลำดับ','ฝ่าย','กอง','สคล./สคจ.','รหัสโครงการ','ชื่อโครงการ','เกรด','การพิจารณาใช้ประโยชน์','สถานะ','ประเภทขนาดพื้นที่','ประเภทที่ดิน','เนื้อที่','ที่อยู่','ลิงก์แผนที่','ละติจูด','ลองจิจูด'];
+  const headers = ['ลำดับ','ฝ่าย','กอง','สคล./สคจ.','รหัสโครงการ','ชื่อโครงการ','เกรด','การพิจารณาใช้ประโยชน์','สถานะ','ประเภทขนาดพื้นที่','ประเภทที่ดิน','เนื้อที่','ที่อยู่','บันทึกเบื้องต้น (หมายเหตุ)','ลิงก์แผนที่','ละติจูด','ลองจิจูด'];
   const bodyRows = rows.map(r => `
     <tr>
       <td>${r.no ?? ''}</td>
@@ -1058,6 +1059,7 @@ document.getElementById('exportXlsBtn').addEventListener('click', () => {
       <td>${escapeHtml(r.land_type)}</td>
       <td>${escapeHtml(areaText(r))}</td>
       <td>${escapeHtml(r.address)}</td>
+      <td>${escapeHtml(r.notes || '')}</td>
       <td>${escapeHtml(mapLink(r) || '')}</td>
       <td>${r.lat ?? ''}</td>
       <td>${r.lng ?? ''}</td>
