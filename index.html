@@ -49,6 +49,9 @@
   .kcard.k-B{ background:#fff; border-left:4px solid var(--B); } .kcard.k-B b{ color:#b5820a; }
   .kcard.k-C{ background:#fff; border-left:4px solid var(--C); } .kcard.k-C b{ color:var(--C); }
   .kcard.k-D{ background:#fff; border-left:4px solid var(--D); } .kcard.k-D b{ color:var(--D); }
+  .kcard.active-filter{ background:#f4f6ff; }
+  .kcard.k-A.active-filter{ box-shadow:0 0 0 2px var(--A) inset; }
+  .kcard.k-D.active-filter{ box-shadow:0 0 0 2px var(--D) inset; }
 
   .filterPanel{ background:var(--panel); border-bottom:1px solid var(--border); padding:14px 20px; max-height:42vh; overflow-y:auto; overflow-x:visible; }
   .tabBar{ display:flex; gap:8px; background:var(--panel); border-bottom:1px solid var(--border); padding:10px 20px; }
@@ -1369,7 +1372,7 @@ let lisDataLoadingPromise = null;
 let lisMap = null, lisMarkerGroup = null, lisBaseLayer = null, lisIsSatellite = true;
 let lisQuery = '';
 let lisCurrentMatches = [];
-let lisState = { province: null, district: null, category: new Set(), areaRange: new Set() };
+let lisState = { province: null, district: null, category: new Set(), areaRange: new Set(), hasCoord: null };
 
 const lisCategoryDefs = [
   { key: 'vacant',     label: 'ที่ดินเปล่า/รอดำเนินการ',    color: '#f5a623', codes: [0,51,52,53,54] },
@@ -1405,6 +1408,11 @@ function lisBaseMatch(r, exclude){
   if (exclude !== 'district' && lisState.district && r.district !== lisState.district) return false;
   if (exclude !== 'category' && lisState.category.size && !lisState.category.has(lisCategoryOf(r.func))) return false;
   if (exclude !== 'areaRange' && lisState.areaRange.size && !lisState.areaRange.has(lisAreaRangeOf(r.deed_area))) return false;
+  if (exclude !== 'hasCoord' && lisState.hasCoord){
+    const hasCoordVal = !!(r.lat && r.lng);
+    if (lisState.hasCoord === 'yes' && !hasCoordVal) return false;
+    if (lisState.hasCoord === 'no' && hasCoordVal) return false;
+  }
   if (exclude !== 'q' && lisQuery){
     const q = lisQuery;
     const qLower = q.toLowerCase();
@@ -1417,7 +1425,7 @@ function lisBaseMatch(r, exclude){
   return true;
 }
 function lisHasActiveFilters(){
-  return !!(lisState.province || lisState.district || lisState.category.size || lisState.areaRange.size || lisQuery);
+  return !!(lisState.province || lisState.district || lisState.category.size || lisState.areaRange.size || lisState.hasCoord || lisQuery);
 }
 
 function ensureLisDataLoaded(){
@@ -1548,12 +1556,35 @@ function renderLisKpi(matches){
   const foundCount = matches.length;
   const withCoord = matches.filter(r => r.lat && r.lng).length;
   const withoutCoord = foundCount - withCoord;
+
+  // นับจำนวนแบบไม่รวมตัวกรอง hasCoord เอง (เหมือน filter กลุ่มอื่นๆ) เพื่อให้ตัวเลข
+  // บนการ์ดสะท้อนว่า "ถ้ากดเลือกอันนี้ จะเหลือกี่รายการ" ตามตัวกรองอื่นที่เลือกไว้อยู่
+  const baseForCoord = LIS_DATA ? LIS_DATA.filter(r => lisBaseMatch(r, 'hasCoord')) : [];
+  const withCoordCount = baseForCoord.filter(r => r.lat && r.lng).length;
+  const withoutCoordCount = baseForCoord.length - withCoordCount;
+
+  const yesActive = lisState.hasCoord === 'yes';
+  const noActive = lisState.hasCoord === 'no';
+
   document.getElementById('lisKpiBar').innerHTML = `
     <div class="kcard"><b>${totalDb.toLocaleString()}</b><span>รายการทั้งหมดในฐาน</span></div>
     <div class="kcard k-geo"><b>${foundCount.toLocaleString()}</b><span>ผลลัพธ์ที่พบ</span></div>
-    <div class="kcard k-A"><b>${withCoord.toLocaleString()}</b><span>มีพิกัด</span></div>
-    <div class="kcard k-D"><b>${withoutCoord.toLocaleString()}</b><span>ไม่มีพิกัด</span></div>
+    <div class="kcard k-A${yesActive ? ' active-filter' : ''}" id="lisKpiCoordYes" style="cursor:pointer;">
+      <b>${withCoordCount.toLocaleString()}</b><span>มีพิกัด</span>
+    </div>
+    <div class="kcard k-D${noActive ? ' active-filter' : ''}" id="lisKpiCoordNo" style="cursor:pointer;">
+      <b>${withoutCoordCount.toLocaleString()}</b><span>ไม่มีพิกัด</span>
+    </div>
   `;
+
+  document.getElementById('lisKpiCoordYes').addEventListener('click', () => {
+    lisState.hasCoord = yesActive ? null : 'yes'; // กดซ้ำเพื่อยกเลิก
+    refreshLisView();
+  });
+  document.getElementById('lisKpiCoordNo').addEventListener('click', () => {
+    lisState.hasCoord = noActive ? null : 'no';
+    refreshLisView();
+  });
 }
 
 function createLisCombo(containerId, key, allLabel){
@@ -1663,6 +1694,8 @@ function renderLisActiveFilters(){
     const def = lisAreaDefs.find(d => d.key === k);
     chips.push({ label: def ? def.label : k, color: def ? def.color : '#f5a623', onRemove: () => lisState.areaRange.delete(k) });
   });
+  if (lisState.hasCoord === 'yes') chips.push({ label: 'มีพิกัด', color: '#12b76a', onRemove: () => { lisState.hasCoord = null; } });
+  if (lisState.hasCoord === 'no') chips.push({ label: 'ไม่มีพิกัด', color: '#e5342b', onRemove: () => { lisState.hasCoord = null; } });
   if (lisQuery) chips.push({ label: `ค้นหา: "${lisQuery}"`, color:'#2f6fed', onRemove: () => { document.getElementById('lisSearchBox').value = ''; } });
 
   const container = document.getElementById('lisActiveFilters');
@@ -1770,7 +1803,7 @@ document.getElementById('lisSearchBox').addEventListener('input', debounce(() =>
 }, 200));
 document.getElementById('lisResetBtn').addEventListener('click', () => {
   document.getElementById('lisSearchBox').value = '';
-  lisState = { province: null, district: null, category: new Set(), areaRange: new Set() };
+  lisState = { province: null, district: null, category: new Set(), areaRange: new Set(), hasCoord: null };
   refreshLisView();
 });
 
