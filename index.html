@@ -203,15 +203,16 @@
   #lisResults .lis-empty{ padding:30px 16px; text-align:center; color:var(--muted); font-size:13.5px; }
 
   /* scrollbars: list panes ONLY, never the map containers (Leaflet handles its own
-     pan/zoom internally — CSS overflow on the map div breaks touch dragging) */
+     pan/zoom internally — CSS overflow on the map div breaks touch dragging).
+     Width matches the global 14px scrollbar below so it's easy to grab with a mouse. */
   #list, #lisResults{
-    scrollbar-width: thin;
+    scrollbar-width: auto;
     scrollbar-color: #b7bccb var(--panel2);
   }
-  #list::-webkit-scrollbar, #lisResults::-webkit-scrollbar{ width: 10px; }
+  #list::-webkit-scrollbar, #lisResults::-webkit-scrollbar{ width: 14px; }
   #list::-webkit-scrollbar-track, #lisResults::-webkit-scrollbar-track{ background: var(--panel2); }
   #list::-webkit-scrollbar-thumb, #lisResults::-webkit-scrollbar-thumb{
-    background-color: #b7bccb; border-radius: 8px; border: 2px solid var(--panel2);
+    background-color: #b7bccb; border-radius: 8px; border: 3px solid var(--panel2);
   }
   #list::-webkit-scrollbar-thumb:hover, #lisResults::-webkit-scrollbar-thumb:hover{ background-color: #9199b0; }
   .card{
