@@ -310,7 +310,8 @@
     padding:7px 14px; border-radius:20px;
   }
   .detail-actions a.sv{ background:var(--purple); }
-  .detail-actions a.landsmaps-link{ background:#fff; color:#5a6178; border:1px solid var(--border); }
+  .detail-actions a.earth{ background:var(--A); }
+  .detail-actions a.landsmaps-link{ background:var(--teal); color:#fff; border:none; }
   .detail-actions a:hover{ opacity:.88; }
 
   .tl-title{ font-size:14.5px; font-weight:800; color:#121a33; margin:0 0 12px; text-transform:uppercase; letter-spacing:.03em; }
@@ -357,6 +358,18 @@
   }
   .card-links a:hover{ border-color:var(--accent); background:#eef3ff; }
   .no-geo-tag{ font-size:12.5px; color:var(--muted); font-weight:600; }
+
+  /* สีแยกตามประเภทปุ่มในการ์ด ให้แยกแยะง่ายด้วยตา (ใช้โทนสีเดียวกับที่ใช้อยู่แล้วในหน้าเว็บ) */
+  .card-links a.link-aerial{ color:var(--accent); border-color:#c7d7fb; }
+  .card-links a.link-aerial:hover{ background:#eef3ff; border-color:var(--accent); }
+  .card-links a.link-streetview{ color:var(--purple); border-color:#dcd4ff; }
+  .card-links a.link-streetview:hover{ background:#f2effe; border-color:var(--purple); }
+  .card-links a.link-earth, .card-links a.link-earth.landsmaps-link{ color:var(--A); border-color:#bfe9d5; background:#fff; }
+  .card-links a.link-earth:hover{ background:#e8f8ef; border-color:var(--A); }
+  .card-links a.link-landsmaps, .card-links a.link-landsmaps.landsmaps-link{ color:var(--teal); border-color:#bdeae8; background:#fff; }
+  .card-links a.link-landsmaps:hover{ background:#e6f9f8; border-color:var(--teal); }
+  .card-links a.link-detail{ color:#5a6178; border-color:var(--border); font-weight:800; }
+  .card-links a.link-detail:hover{ background:#f1f2f6; border-color:#5a6178; }
 
   .leaflet-popup-content-wrapper{ background:#fff; color:var(--text); border-radius:12px; box-shadow:var(--shadow-lg); }
   .leaflet-popup-tip{ background:#fff; }
@@ -913,11 +926,11 @@ function renderList(rows){
       <div class="card-addr">${escapeHtml(r.address || r.usage_type || '')}</div>
       <div class="card-links">
         ${ (r.lat && r.lng) ? (r.approx ? `<span class="no-geo-tag">📍 พิกัดโดยประมาณ</span>` : `<span class="no-geo-tag">📍 พิกัดแม่นยำ</span>`) : `<span class="no-geo-tag">⚠️ ไม่มีพิกัดเลย</span>`}
-        ${link ? `<a href="${link}" target="_blank" data-action="stop">✈️ มุมมองทางอากาศ</a>` : ''}
-        ${svLink ? `<a href="${svLink}" target="_blank" data-action="stop">🚶 Street View</a>` : ''}
-        <a class="landsmaps-link" href="https://landsmaps.dol.go.th/" target="_blank" data-action="stop">🔍 ตรวจสอบใน LandsMaps${lmHint ? ' ('+escapeHtml(lmHint)+')' : ''}</a>
-        ${geLink ? `<a class="landsmaps-link" href="${geLink}" target="_blank" data-action="stop">🌍 ตรวจสอบใน Google Earth</a>` : ''}
-        <a href="#" data-action="detail" data-no="${r.no}">📋 ดูลำดับความเห็น</a>
+        ${link ? `<a class="link-aerial" href="${link}" target="_blank" data-action="stop">✈️ มุมมองทางอากาศ</a>` : ''}
+        ${svLink ? `<a class="link-streetview" href="${svLink}" target="_blank" data-action="stop">🚶 Street View</a>` : ''}
+        <a class="link-landsmaps" href="https://landsmaps.dol.go.th/" target="_blank" data-action="stop">🔍 ตรวจสอบใน LandsMaps${lmHint ? ' ('+escapeHtml(lmHint)+')' : ''}</a>
+        ${geLink ? `<a class="link-earth" href="${geLink}" target="_blank" data-action="stop">🌍 ตรวจสอบใน Google Earth</a>` : ''}
+        <a class="link-detail" href="#" data-action="detail" data-no="${r.no}">📋 ดูลำดับความเห็น</a>
       </div>
     </div>`;
   }).join('');
@@ -1167,7 +1180,7 @@ function openDetail(no){
       ${link ? `<a href="${link}" target="_blank">✈️ เปิดมุมมองทางอากาศ</a>` : ''}
       ${svLink ? `<a class="sv" href="${svLink}" target="_blank">🚶 เปิด Street View</a>` : ''}
       <a class="landsmaps-link" href="https://landsmaps.dol.go.th/" target="_blank">🔍 ตรวจสอบใน LandsMaps${lmHint ? ' ('+escapeHtml(lmHint)+')' : ''}</a>
-      ${geLink ? `<a class="landsmaps-link" href="${geLink}" target="_blank">🌍 ตรวจสอบใน Google Earth</a>` : ''}
+      ${geLink ? `<a class="earth" href="${geLink}" target="_blank">🌍 ตรวจสอบใน Google Earth</a>` : ''}
       <a href="#" class="pdf-export-link" data-action="stop" onclick="exportDetailPdf(${r.no}); return false;">📄 Export PDF</a>
     </div>
     <details class="rules-ref">
@@ -1760,9 +1773,9 @@ function renderLisResultsList(matches){
       <div class="card-links">
         ${hasCoord ? `<span class="no-geo-tag">📍 ${r.lat.toFixed(6)}, ${r.lng.toFixed(6)}</span>` : `<span class="no-geo-tag">⚠️ ไม่มีพิกัดในฐานนี้</span>`}
         ${hasCoord ? `<button class="landsmaps-link" data-action="stop" onclick="copyCoord(${r.lat}, ${r.lng}, this)">📋 คัดลอกพิกัด</button>` : ''}
-        ${hasCoord ? `<a href="${lisAerialLink(r.lat, r.lng)}" target="_blank" data-action="stop">✈️ มุมมองทางอากาศ</a>` : ''}
-        ${hasCoord ? `<a class="landsmaps-link" href="${lisEarthLink(r.lat, r.lng)}" target="_blank" data-action="stop">🌍 Google Earth</a>` : ''}
-        <a class="landsmaps-link" href="https://landsmaps.dol.go.th/" target="_blank" data-action="stop">🔍 LandsMaps${escapeHtml(lisLandsMapsHint(r))}</a>
+        ${hasCoord ? `<a class="link-aerial" href="${lisAerialLink(r.lat, r.lng)}" target="_blank" data-action="stop">✈️ มุมมองทางอากาศ</a>` : ''}
+        ${hasCoord ? `<a class="link-earth" href="${lisEarthLink(r.lat, r.lng)}" target="_blank" data-action="stop">🌍 Google Earth</a>` : ''}
+        <a class="link-landsmaps" href="https://landsmaps.dol.go.th/" target="_blank" data-action="stop">🔍 LandsMaps${escapeHtml(lisLandsMapsHint(r))}</a>
       </div>
       ${!hasCoord ? `<div class="lis-no-coord">⚠️ ไม่มีพิกัด X,Y ในฐานนี้ — คลิกรายการนี้เพื่อเปิด LandsMaps ค้นหาต่อด้วยเลขที่โฉนดนี้</div>` : ''}
     </div>`;
