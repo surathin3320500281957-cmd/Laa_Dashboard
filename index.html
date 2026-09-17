@@ -5,8 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Dashboard พื้นที่จัดประโยชน์ กคช.</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
-<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+
 <style>
   :root{
     --bg:#eef1f8; --panel:#ffffff; --panel2:#f6f8fc; --border:#e2e6f0;
@@ -185,18 +184,18 @@
   .map-toggle-btn.mini{ font-size:10.5px; padding:4px 8px; margin:6px; }
 
   main{ flex:1; display:flex; overflow:hidden; }
-  #map{ flex:1.3; min-width:0; }
+  #map{ display:none; }
 
   #listPane{
-    flex:1; min-width:340px; max-width:520px; display:flex; flex-direction:column;
-    border-left:1px solid var(--border); background:var(--panel);
+    flex:1; min-width:340px; display:flex; flex-direction:column;
+    background:var(--panel);
   }
   #resultCount{ padding:9px 16px; font-size:14px; color:var(--muted); border-bottom:1px solid var(--border); font-weight:600; }
   #list{ overflow-y:auto; flex:1; }
-  #lisMap{ flex:1.3; min-width:0; }
+  #lisMap{ display:none; }
   #lisListPane{
-    flex:1; min-width:340px; max-width:520px; display:flex; flex-direction:column;
-    border-left:1px solid var(--border); background:var(--panel);
+    flex:1; min-width:340px; display:flex; flex-direction:column;
+    background:var(--panel);
   }
   #lisResultCount{ padding:9px 16px; font-size:14px; color:var(--muted); border-bottom:1px solid var(--border); font-weight:600; }
   #lisResults{ overflow-y:auto; flex:1; }
@@ -385,8 +384,6 @@
 
   @media (max-width: 800px){
     main{ flex-direction:column; }
-    #listPane{ max-width:none; max-height:45vh; }
-    #map{ min-height:40vh; }
   }
 </style>
 </head>
@@ -518,11 +515,9 @@
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
 <script>
 let DATA = [];
 let detailMap = null;
-let markers = {};
 let currentRows = [];
 let detailMarker = null;
 let miniIsSatellite = true;
@@ -617,30 +612,6 @@ function satelliteTileLayer(){
   });
 }
 
-const map = L.map('map', { zoomControl: true, preferCanvas: true, zoomAnimation: false, markerZoomAnimation: false }).setView([13.75, 101.0], 6);
-let mainIsSatellite = true;
-let mainBaseLayer = satelliteTileLayer().addTo(map);
-
-const MapToggleControl = L.Control.extend({
-  options: { position: 'topright' },
-  onAdd: function(){
-    const btn = L.DomUtil.create('div', 'map-toggle-btn');
-    btn.innerHTML = '🗺️ แผนที่ถนน';
-    L.DomEvent.disableClickPropagation(btn);
-    btn.onclick = function(){
-      mainIsSatellite = !mainIsSatellite;
-      map.removeLayer(mainBaseLayer);
-      mainBaseLayer = (mainIsSatellite ? satelliteTileLayer() : streetTileLayer()).addTo(map);
-      btn.innerHTML = mainIsSatellite ? '🗺️ แผนที่ถนน' : '🛰️ ภาพถ่ายดาวเทียม';
-    };
-    return btn;
-  }
-});
-map.addControl(new MapToggleControl());
-
-const clusterGroup = L.markerClusterGroup({ maxClusterRadius: 45 });
-map.addLayer(clusterGroup);
-
 function makeIcon(letter, isApprox){
   const color = gradeColor[letter] || '#98a2ba';
   const dashAttr = isApprox ? ' stroke-dasharray="3,2"' : '';
@@ -699,48 +670,6 @@ function areaText(r){
 
 function escapeHtml(s){
   return (s||'').toString().replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-}
-
-function buildMarkers(rows){
-  clusterGroup.clearLayers();
-  markers = {};
-  const newMarkers = [];
-  rows.forEach(r => {
-    if (r.lat && r.lng){
-      const letter = gradeLetter(r.grade);
-      const m = L.marker([r.lat, r.lng], { icon: makeIcon(letter, r.approx) });
-      const link = mapLink(r);
-      const svLink = streetViewLink(r);
-      const aLabel = approxLabel(r);
-      const lmHint = landsMapsHint(r);
-      const geLink = googleEarthLink(r);
-      m.bindPopup(`
-        <div class="popup-title">${escapeHtml(r.proj_name || '(ไม่ระบุชื่อโครงการ)')}</div>
-        <div class="popup-meta">${escapeHtml(r.dept||'')} ${escapeHtml(r.div||'')} · เกรด ${letter||'-'} · ${escapeHtml(areaText(r))}</div>
-        <div><span class="deed-badge">📜 โฉนดเลขที่ ${r.deed_no ?? '-'}</span>${r.deed_no ? `<button class="mini-copy" onclick="copyText('${r.deed_no}', this)">คัดลอก</button>` : ''}</div>
-        ${aLabel ? `<div><span class="approx-badge">${aLabel}</span></div>` : ''}
-        <div class="popup-meta">${escapeHtml(r.address||'')}</div>
-        <div class="popup-meta">${escapeHtml(r.usage_type||'')}</div>
-        <div class="coord-row" style="margin:6px 0;">
-          <span class="coord-text">📍 ${r.lat.toFixed(6)}, ${r.lng.toFixed(6)}</span>
-          <button class="coord-copy" onclick="copyCoord(${r.lat}, ${r.lng}, this)">คัดลอก</button>
-        </div>
-        <div style="display:flex;gap:10px;margin-top:6px;flex-wrap:wrap;">
-          ${link ? `<a class="popup-link" href="${link}" target="_blank">✈️ มุมมองทางอากาศ</a>` : ''}
-          ${svLink ? `<a class="popup-link" href="${svLink}" target="_blank">🚶 Street View</a>` : ''}
-          <a class="popup-link" href="https://landsmaps.dol.go.th/" target="_blank">🔍 LandsMaps${lmHint ? ' ('+escapeHtml(lmHint)+')' : ''}</a>
-          ${geLink ? `<a class="popup-link" href="${geLink}" target="_blank">🌍 Google Earth</a>` : ''}
-        </div>
-        <div style="margin-top:8px;"><span class="opinion-link" onclick="openDetail(${r.no})" style="cursor:pointer;">📋 ดูลำดับความเห็น →</span></div>
-      `);
-      m.on('click', () => highlightCard(r.no));
-      markers[r.no] = m;
-      newMarkers.push(m);
-    }
-  });
-  // Bulk-add: builds the spatial index once for the whole batch, instead of
-  // re-clustering on every single addLayer() call (which is O(n) per call).
-  clusterGroup.addLayers(newMarkers);
 }
 
 let deptOptions = [];
@@ -964,12 +893,6 @@ document.getElementById('list').addEventListener('click', (e) => {
   const card = e.target.closest('.card');
   if (card){
     const no = Number(card.dataset.no);
-    const r = DATA.find(d => d.no === no);
-    if (r && r.lat && r.lng){
-      map.setView([r.lat, r.lng], 16);
-      const m = markers[r.no];
-      if (m) { clusterGroup.zoomToShowLayer(m, () => m.openPopup()); }
-    }
     highlightCard(no);
   }
 });
@@ -989,7 +912,6 @@ function applyFilters(){
   currentRows = DATA.filter(r => baseMatch(r, null));
   renderKpi(currentRows);
   renderList(currentRows);
-  buildMarkers(currentRows);
   renderChips();
   renderActiveFilters();
 }
@@ -1383,7 +1305,6 @@ document.getElementById('detailOverlay').addEventListener('click', closeDetail);
 // so the initial page load stays light regardless of whether this tab is ever used.
 let LIS_DATA = null;
 let lisDataLoadingPromise = null;
-let lisMap = null, lisMarkerGroup = null, lisBaseLayer = null, lisIsSatellite = true;
 let lisQuery = '';
 let lisCurrentMatches = [];
 let lisState = { province: null, district: null, category: new Set(), areaRange: new Set(), hasCoord: null };
@@ -1466,79 +1387,9 @@ function ensureLisDataLoaded(){
   return lisDataLoadingPromise;
 }
 
-function ensureLisMap(){
-  if (lisMap) return;
-  lisMap = L.map('lisMap', { zoomControl: true, preferCanvas: true, zoomAnimation: false, markerZoomAnimation: false }).setView([13.75, 101.0], 6);
-  lisBaseLayer = satelliteTileLayer().addTo(lisMap);
-
-  const LisToggleControl = L.Control.extend({
-    options: { position: 'topright' },
-    onAdd: function(){
-      const btn = L.DomUtil.create('div', 'map-toggle-btn');
-      btn.innerHTML = '🗺️ แผนที่ถนน';
-      L.DomEvent.disableClickPropagation(btn);
-      btn.onclick = function(){
-        lisIsSatellite = !lisIsSatellite;
-        lisMap.removeLayer(lisBaseLayer);
-        lisBaseLayer = (lisIsSatellite ? satelliteTileLayer() : streetTileLayer()).addTo(lisMap);
-        btn.innerHTML = lisIsSatellite ? '🗺️ แผนที่ถนน' : '🛰️ ภาพถ่ายดาวเทียม';
-      };
-      return btn;
-    }
-  });
-  lisMap.addControl(new LisToggleControl());
-
-  lisMarkerGroup = L.markerClusterGroup({ maxClusterRadius: 45 });
-  lisMap.addLayer(lisMarkerGroup);
-  // NOTE: #lisMap has no CSS overflow set — Leaflet manages its own pan/zoom.
-  // Do not add overflow:auto/scroll here; it breaks touch dragging (see plan doc).
-}
-
-let lisMarkers = {};
-function buildLisMarkers(rows){
-  if (!lisMarkerGroup) return;
-  lisMarkerGroup.clearLayers();
-  lisMarkers = {};
-  const pts = [];
-  rows.forEach((r, idx) => {
-    if (!r.lat || !r.lng) return;
-    const m = L.marker([r.lat, r.lng], { icon: makeIcon(null, false) });
-    const netAreaText = r.net_area2 != null ? String(r.net_area2) : (r.net_area != null ? String(r.net_area) : '-');
-    m.bindPopup(`
-      <div class="popup-title">โฉนดเลขที่ ${escapeHtml(r.deedno || '-')}${r.landno ? ' · เลขที่ดิน ' + escapeHtml(r.landno) : ''}${r.deedno ? ` <button class="mini-copy" onclick="copyText('${escapeHtml(r.deedno)}', this)">คัดลอก</button>` : ''}</div>
-      <div class="popup-meta">${lisCategoryBadge(r.func)}</div>
-      <div class="popup-meta">${escapeHtml(r.func || '-')}</div>
-      <div class="popup-meta">📐 เนื้อที่ตามโฉนด ${r.deed_area != null ? escapeHtml(String(r.deed_area)) : '-'} · ใช้จริง ${escapeHtml(netAreaText)}</div>
-      <div class="coord-row" style="margin:6px 0;">
-        <span class="coord-text">📍 ${r.lat.toFixed(6)}, ${r.lng.toFixed(6)}</span>
-        <button class="coord-copy" onclick="copyCoord(${r.lat}, ${r.lng}, this)">คัดลอก</button>
-      </div>
-      <div style="display:flex;gap:10px;margin-top:6px;flex-wrap:wrap;">
-        <a class="popup-link" href="${lisAerialLink(r.lat, r.lng)}" target="_blank">✈️ มุมมองทางอากาศ</a>
-        <a class="popup-link" href="${lisEarthLink(r.lat, r.lng)}" target="_blank">🌍 Google Earth</a>
-        <a class="popup-link" href="https://landsmaps.dol.go.th/" target="_blank">🔍 LandsMaps${escapeHtml(lisLandsMapsHint(r))}</a>
-      </div>
-    `);
-    lisMarkerGroup.addLayer(m);
-    lisMarkers[idx] = m;
-    pts.push([r.lat, r.lng]);
-  });
-  if (pts.length === 1){
-    lisMap.setView(pts[0], 16);
-  } else if (pts.length > 1){
-    lisMap.fitBounds(L.latLngBounds(pts), { padding: [40,40], maxZoom: 15 });
-  }
-}
-
 function lisLandsMapsHint(r){
   const parts = [r.province, r.district].filter(Boolean);
   return parts.length ? ' (' + parts.join('/') + ')' : '';
-}
-
-function showLisMarkerPopup(idx){
-  const m = lisMarkers[idx];
-  if (!m || !lisMap) return;
-  lisMarkerGroup.zoomToShowLayer(m, () => m.openPopup());
 }
 
 function switchTab(name){
@@ -1548,11 +1399,8 @@ function switchTab(name){
   document.getElementById('tabBtnDashboard').classList.toggle('active', isDash);
   document.getElementById('tabBtnLis').classList.toggle('active', !isDash);
   if (isDash){
-    setTimeout(() => map.invalidateSize(), 0);
     return;
   }
-  ensureLisMap();
-  setTimeout(() => lisMap.invalidateSize(), 0);
   ensureLisDataLoaded().then(() => {
     refreshLisView();
   }).catch(() => { /* error already shown in ensureLisDataLoaded */ });
@@ -1737,7 +1585,6 @@ function renderLisResultsList(matches){
   if (!lisHasActiveFilters()){
     countEl.textContent = '';
     box.innerHTML = `<div class="lis-empty">พิมพ์คำค้น หรือเลือกตัวกรองด้านบน เพื่อค้นหาในฐานข้อมูลกรมที่ดิน (${LIS_DATA.length.toLocaleString()} รายการ)</div>`;
-    buildLisMarkers([]);
     return;
   }
 
@@ -1746,13 +1593,11 @@ function renderLisResultsList(matches){
   if (matches.length === 0){
     box.innerHTML = `<div class="lis-empty">ไม่พบรายการที่ตรงกับเงื่อนไข — ลองปรับตัวกรอง หรือค้นหาต่อใน LandsMaps โดยตรง<br><br>
       <a class="landsmaps-link" href="https://landsmaps.dol.go.th/" target="_blank">🔍 เปิด LandsMaps เพื่อค้นหาต่อ</a></div>`;
-    buildLisMarkers([]);
     return;
   }
 
   const CAP = 150;
   const shown = matches.slice(0, CAP);
-  buildLisMarkers(shown);
 
   const cardsHtml = shown.map((r, idx) => {
     const hasCoord = r.lat && r.lng;
@@ -1766,8 +1611,8 @@ function renderLisResultsList(matches){
       <div class="card-meta">${lisCategoryBadge(r.func)}</div>
       <div class="card-meta">${escapeHtml(r.func || '')}</div>
       <div style="display:flex;gap:6px;flex-wrap:wrap;">
-        <button class="deed-badge" data-action="stop" onclick="showLisMarkerPopup(${idx})" style="cursor:pointer;font:inherit;">📐 ตามโฉนด ${r.deed_area != null ? escapeHtml(String(r.deed_area)) : '-'}</button>
-        <button class="deed-badge" data-action="stop" onclick="showLisMarkerPopup(${idx})" style="cursor:pointer;font:inherit;">📐 ใช้จริง ${r.net_area2 != null ? escapeHtml(String(r.net_area2)) : (r.net_area != null ? escapeHtml(String(r.net_area)) : '-')}</button>
+        <span class="deed-badge">📐 ตามโฉนด ${r.deed_area != null ? escapeHtml(String(r.deed_area)) : '-'}</span>
+        <span class="deed-badge">📐 ใช้จริง ${r.net_area2 != null ? escapeHtml(String(r.net_area2)) : (r.net_area != null ? escapeHtml(String(r.net_area)) : '-')}</span>
       </div>
       <div class="card-addr">${escapeHtml(locationText)}</div>
       <div class="card-links">
