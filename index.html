@@ -53,7 +53,7 @@
   .kcard.k-D.active-filter{ box-shadow:0 0 0 2px var(--D) inset; }
 
   .filterPanel{
-    background:var(--panel); border-right:1px solid var(--border);
+    background:var(--panel2); border-right:3px solid var(--accent);
     padding:14px 20px; width:50%; flex:0 0 50%; overflow-y:auto; overflow-x:hidden;
   }
   .tabBar{ display:flex; gap:8px; background:var(--panel); border-bottom:1px solid var(--border); padding:10px 20px; }
@@ -88,6 +88,8 @@
   }
   .pdf-export-link:hover{ background:#c62a22; border-color:#c62a22; }
   .btn.xls{ background:var(--A); } .btn.xls:hover{ background:#0d9c5c; }
+  .btn.reset{ background:var(--B); color:#fff; }
+  .btn.reset:hover{ background:#d68910; }
 
   .activeFilters{ display:none; flex-wrap:wrap; gap:7px; margin-bottom:12px; }
   .activeFilters.show{ display:flex; }
@@ -193,14 +195,22 @@
     flex:1; min-width:340px; display:flex; flex-direction:column;
     background:var(--panel);
   }
-  #resultCount{ padding:9px 16px; font-size:14px; color:var(--muted); border-bottom:1px solid var(--border); font-weight:600; }
+  #resultCount{
+    padding:11px 18px; font-size:14.5px; font-weight:800; color:#fff;
+    background:linear-gradient(100deg,#2f6fed 0%,#1f56cf 100%);
+    box-shadow:var(--shadow-sm); letter-spacing:.01em;
+  }
   #list{ overflow-y:auto; flex:1; }
   #lisMap{ display:none; }
   #lisListPane{
     flex:1; min-width:340px; display:flex; flex-direction:column;
     background:var(--panel);
   }
-  #lisResultCount{ padding:9px 16px; font-size:14px; color:var(--muted); border-bottom:1px solid var(--border); font-weight:600; }
+  #lisResultCount{
+    padding:11px 18px; font-size:14.5px; font-weight:800; color:#fff;
+    background:linear-gradient(100deg,#2f6fed 0%,#1f56cf 100%);
+    box-shadow:var(--shadow-sm); letter-spacing:.01em; min-height:19px;
+  }
   #lisResults{ overflow-y:auto; flex:1; }
   #lisResults .lis-empty{ padding:30px 16px; text-align:center; color:var(--muted); font-size:13.5px; }
 
@@ -387,7 +397,7 @@
 
   @media (max-width: 800px){
     #dashboardView, #lisView{ flex-direction:column; }
-    .filterPanel{ width:auto; flex:0 0 auto; max-height:42vh; border-right:none; border-bottom:1px solid var(--border); }
+    .filterPanel{ width:auto; flex:0 0 auto; max-height:42vh; border-right:none; border-bottom:3px solid var(--accent); }
     main{ flex-direction:column; }
   }
 </style>
@@ -411,7 +421,7 @@
   <div class="kpi" id="kpiBar"></div>
   <div class="filterTop">
     <input type="text" id="searchBox" placeholder="ค้นหาชื่อโครงการ / ที่อยู่ / รหัสโครงการ / เลขที่โฉนด..." />
-    <button class="btn ghost" id="resetBtn">ล้างตัวกรอง</button>
+    <button class="btn reset" id="resetBtn">🗑️ ล้างตัวกรอง</button>
     <button class="btn pdf" id="exportPdfBtn">📄 Export PDF</button>
     <button class="btn xls" id="exportXlsBtn">📊 Export Excel</button>
   </div>
@@ -470,7 +480,7 @@
     <div class="kpi" id="lisKpiBar"></div>
     <div class="filterTop">
       <input type="text" id="lisSearchBox" placeholder="พิมพ์เลขที่โฉนด / เลขที่ดิน / ตำบล / อำเภอ / จังหวัด..." disabled />
-      <button class="btn ghost" id="lisResetBtn">ล้างตัวกรอง</button>
+      <button class="btn reset" id="lisResetBtn">🗑️ ล้างตัวกรอง</button>
       <button class="btn pdf" id="exportLisPdfBtn">📄 Export PDF</button>
       <button class="btn xls" id="exportLisXlsBtn">📊 Export Excel</button>
     </div>
@@ -1588,7 +1598,7 @@ function renderLisResultsList(matches){
   const countEl = document.getElementById('lisResultCount');
 
   if (!lisHasActiveFilters()){
-    countEl.textContent = '';
+    countEl.textContent = 'ยังไม่ได้เลือกตัวกรอง';
     box.innerHTML = `<div class="lis-empty">พิมพ์คำค้น หรือเลือกตัวกรองด้านบน เพื่อค้นหาในฐานข้อมูลกรมที่ดิน (${LIS_DATA.length.toLocaleString()} รายการ)</div>`;
     return;
   }
