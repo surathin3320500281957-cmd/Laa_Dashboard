@@ -17,7 +17,7 @@
   }
   *{box-sizing:border-box;}
   #dashboardView, #lisView{
-    flex:1; display:flex; flex-direction:column; min-height:0; overflow:hidden;
+    flex:1; display:flex; flex-direction:row; min-height:0; overflow:hidden;
   }
   body{
     margin:0; font-family:"Segoe UI","Sarabun",Tahoma,sans-serif;
@@ -52,7 +52,10 @@
   .kcard.k-A.active-filter{ box-shadow:0 0 0 2px var(--A) inset; }
   .kcard.k-D.active-filter{ box-shadow:0 0 0 2px var(--D) inset; }
 
-  .filterPanel{ background:var(--panel); border-bottom:1px solid var(--border); padding:14px 20px; max-height:42vh; overflow-y:auto; overflow-x:visible; }
+  .filterPanel{
+    background:var(--panel); border-right:1px solid var(--border);
+    padding:14px 16px; width:320px; flex:0 0 320px; overflow-y:auto; overflow-x:hidden;
+  }
   .tabBar{ display:flex; gap:8px; background:var(--panel); border-bottom:1px solid var(--border); padding:10px 20px; }
   .tabBtn{ border:1px solid var(--border); background:#fff; color:var(--muted); font-weight:700; font-size:13px; padding:8px 16px; border-radius:20px; cursor:pointer; }
   .tabBtn.active{ background:var(--accent); border-color:var(--accent); color:#fff; }
@@ -383,6 +386,8 @@
   *{ scrollbar-width:auto; scrollbar-color:#b7c0dc var(--panel2); }
 
   @media (max-width: 800px){
+    #dashboardView, #lisView{ flex-direction:column; }
+    .filterPanel{ width:auto; flex:0 0 auto; max-height:42vh; border-right:none; border-bottom:1px solid var(--border); }
     main{ flex-direction:column; }
   }
 </style>
